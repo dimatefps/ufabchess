@@ -1,0 +1,106 @@
+@import url("components/buttons.css");
+
+:root {
+  /* Fundos */
+  --bg-main: #1e1e1e    ;
+  --bg-secondary: #242424;
+  --bg-alt: #f9f9f9;
+  --bg-footer: #0f0f0f;
+
+  /* Cores institucionais */
+  --color-accent: #e6b800; /* Amarelo UFABCHESS */
+  --color-primary: #0e5a3c; /* Verde UFABC */
+
+  /* Texto */
+  --text-main: #e6e6e6;
+  --text-secondary: #c7c7c7;
+  --text-alt: black;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+h1 {
+    font-family: 'Merriweather', Arial;
+    font-weight: 400;
+    color: var(--color-accent);
+} 
+
+h2, h3 {
+  font-family: 'Merriweather';
+  font-weight: 400;
+  color: var(--color-primary);
+}
+
+h1 {
+  font-size: 48px;
+}
+
+h2 {
+  font-size: 32px;
+}
+
+p {
+  color: var(--text-main);
+}
+
+
+
+section {
+  padding: 4rem 2rem;
+}
+
+.section-alt {
+  background-color: var(--bg-main);
+}
+
+#hero {
+    background-color: var(--bg-main);
+}
+
+#description {
+    background-color: var(--bg-secondary);
+}
+
+#p-hero {
+  font-size: 24pt;
+  color: var(--text-secondary)  
+}
+
+#events {
+  background-color: var(--bg-alt);    
+}
+
+.text-alt {
+  color: #0f0f0f;
+}
+
+.article {
+    background-color: #ffffff;
+    
+}
+.article p {
+    color: var(--text-alt);
+    font-size: 16px;
+}
+
+.article ul {
+  color: var(--text-alt);
+  font-size: 16px;
+}
+
+.article ol {
+  color: var(--text-alt);
+  font-size: 16px;
+}
