@@ -26,6 +26,8 @@ function setupMobileMenu() {
     }
 }
 
-// Inicia o carregamento
-loadComponent("site-header", "../components/header.html");
-loadComponent("site-footer", "../components/footer.html");
+const isRoot = !window.location.pathname.includes("/pages/");
+
+loadComponent("site-header", isRoot ? "components/header-root.html" : "../components/header-pages.html");
+
+loadComponent("site-footer", isRoot ? "components/footer.html" : "../components/footer.html");
