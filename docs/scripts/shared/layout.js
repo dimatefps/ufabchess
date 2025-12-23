@@ -27,5 +27,5 @@ function setupMobileMenu() {
 }
 
 // Inicia o carregamento
-loadComponent("site-header", "/components/header.html");
-loadComponent("site-footer", "/components/footer.html");
+loadComponent("site-header", "../components/header.html");
+loadComponent("site-footer", "../components/footer.html");
