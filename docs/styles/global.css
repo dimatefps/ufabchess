@@ -245,4 +245,8 @@ hr.spacer {
   .iframe-sheet {
     max-width: 100%;
   } 
+
+  .ranking-atual {
+    width: 100%;
+  }
 }
