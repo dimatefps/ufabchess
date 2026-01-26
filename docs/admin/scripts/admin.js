@@ -53,12 +53,27 @@ loadTournaments();
 loadPlayers();
 
 const form = document.getElementById("match-form");
+const submitButton = form.querySelector('button[type="submit"]');
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-  await submitMatch();
+  if (submitButton.disabled) return;
+
+  submitButton.disabled = true;
+  submitButton.textContent = "Enviando...";
+
+  try {
+    await submitMatch();
+  } catch (err) {
+    alert(err.message || "Erro inesperado");
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Registrar resultado";
+  }
 });
+
+
 
 async function submitMatch() {
   const tournamentId = document.getElementById("tournament-select").value;
@@ -125,10 +140,10 @@ async function submitMatch() {
   });
 
   if (error) {
-    console.error(error);
-    alert("Erro ao registrar partida");
-    return;
+  console.error(error);
+  throw new Error("Erro ao registrar partida");
   }
+
 
   alert("Resultado registrado com sucesso");
   document.getElementById("match-form").reset();
