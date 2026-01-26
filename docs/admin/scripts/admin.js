@@ -1,8 +1,41 @@
 import { supabase } from "./supabase.js";
 
+const { data: { user } } = await supabase.auth.getUser();
+
+if (!user) {
+  window.location.href = "../pages/admin-login.html";
+}
+
+const { data: referee } = await supabase
+  .from("referees")
+  .select("id")
+  .eq("id", user.id)
+  .single();
+
+if (!referee) {
+  alert("Acesso negado");
+  await supabase.auth.signOut();
+  window.location.href = "../pages/admin-login.html";
+}
+
+document.getElementById("logout").addEventListener("click", async () => {
+  await supabase.auth.signOut();
+  window.location.href = "../pages/admin-login.html";
+});
+
+
+
 const tournamentSelect = document.getElementById("tournament-select");
 const playerWhiteSelect = document.getElementById("player-white");
 const playerBlackSelect = document.getElementById("player-black");
+const form = document.getElementById("match-form");
+const submitButton = form.querySelector('button[type="submit"]');
+
+let isSubmitting = false;
+
+/* =======================
+   LOAD INITIAL DATA
+======================= */
 
 async function loadTournaments() {
   const { data, error } = await supabase
@@ -52,13 +85,15 @@ async function loadPlayers() {
 loadTournaments();
 loadPlayers();
 
-const form = document.getElementById("match-form");
-const submitButton = form.querySelector('button[type="submit"]');
+/* =======================
+   FORM SUBMIT
+======================= */
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  if (submitButton.disabled) return;
+  if (isSubmitting) return;
+  isSubmitting = true;
 
   submitButton.disabled = true;
   submitButton.textContent = "Enviando...";
@@ -68,28 +103,29 @@ form.addEventListener("submit", async (e) => {
   } catch (err) {
     alert(err.message || "Erro inesperado");
   } finally {
+    isSubmitting = false;
     submitButton.disabled = false;
     submitButton.textContent = "Registrar resultado";
   }
 });
 
-
+/* =======================
+   SUBMIT MATCH
+======================= */
 
 async function submitMatch() {
-  const tournamentId = document.getElementById("tournament-select").value;
+  const tournamentId = tournamentSelect.value;
   const roundNumber = Number(document.getElementById("round-number").value);
-  const whitePlayer = document.getElementById("player-white").value;
-  const blackPlayer = document.getElementById("player-black").value;
+  const whitePlayer = playerWhiteSelect.value;
+  const blackPlayer = playerBlackSelect.value;
   const resultValue = document.getElementById("match-result").value;
 
-  if (!tournamentId || !roundNumber || !whitePlayer || !blackPlayer) {
-    alert("Preencha todos os campos");
-    return;
+  if (!tournamentId || !roundNumber || !whitePlayer || !blackPlayer || !resultValue) {
+    throw new Error("Preencha todos os campos");
   }
 
   if (whitePlayer === blackPlayer) {
-    alert("Jogadores não podem ser iguais");
-    return;
+    throw new Error("Jogadores não podem ser iguais");
   }
 
   let resultWhite;
@@ -125,8 +161,7 @@ async function submitMatch() {
       break;
 
     default:
-      alert("Resultado inválido");
-      return;
+      throw new Error("Resultado inválido");
   }
 
   const { error } = await supabase.rpc("register_match", {
@@ -140,11 +175,12 @@ async function submitMatch() {
   });
 
   if (error) {
-  console.error(error);
-  throw new Error("Erro ao registrar partida");
+    if (error.message.includes("unique_match_per_round")) {
+      throw new Error("Esse confronto já foi registrado nessa rodada");
+    }
+    throw error;
   }
 
-
-  alert("Resultado registrado com sucesso");
-  document.getElementById("match-form").reset();
+  alert("Partida registrada com sucesso");
+  form.reset();
 }
