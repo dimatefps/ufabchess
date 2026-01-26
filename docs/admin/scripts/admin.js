@@ -1,22 +1,45 @@
 import { supabase } from "./supabase.js";
 
-const { data: { user } } = await supabase.auth.getUser();
+/* =======================
+   AUTH CHECK
+======================= */
 
-if (!user) {
+const {
+  data: { user },
+  error: userError
+} = await supabase.auth.getUser();
+
+if (userError || !user) {
   window.location.href = "../pages/admin-login.html";
 }
 
-const { data: referee } = await supabase
+/* =======================
+   REFEREE CHECK
+======================= */
+
+const { data: referee, error: refereeError } = await supabase
   .from("referees")
-  .select("id")
+  .select("full_name")
   .eq("id", user.id)
   .single();
 
-if (!referee) {
+if (refereeError || !referee) {
   alert("Acesso negado");
   await supabase.auth.signOut();
   window.location.href = "../pages/admin-login.html";
 }
+
+/* =======================
+   SHOW REFEREE NAME
+======================= */
+
+const refereeNameEl = document.getElementById("referee-name");
+
+if (refereeNameEl) {
+  refereeNameEl.textContent = `Árbitro: ${referee.full_name}`;
+}
+
+
 
 document.getElementById("logout").addEventListener("click", async () => {
   await supabase.auth.signOut();
