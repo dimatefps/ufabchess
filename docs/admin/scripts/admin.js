@@ -19,11 +19,14 @@ if (userError || !user) {
 
 const { data: referee, error: refereeError } = await supabase
   .from("referees")
-  .select("full_name")
+  .select("full_name, role")
   .eq("id", user.id)
   .single();
 
+const refereeRole = referee.role;
+  
 const refereeId = user.id;
+
 
 
 if (refereeError || !referee) {
@@ -243,11 +246,13 @@ async function loadRecentMatches() {
       `Rodada ${match.round_number} - ` +
       `${match.player_white.full_name} x ${match.player_black.full_name} `;
 
-    const btn = document.createElement("button");
-    btn.textContent = "Desfazer";
-    btn.onclick = () => rollbackMatch(match.id);
+    if (refereeRole === "admin") {
+      const btn = document.createElement("button");
+      btn.textContent = "Desfazer";
+      btn.onclick = () => rollbackMatch(match.id);
+      li.appendChild(btn);
+    }
 
-    li.appendChild(btn);
     matchesList.appendChild(li);
   });
 }
