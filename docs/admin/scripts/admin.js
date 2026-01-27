@@ -23,6 +23,9 @@ const { data: referee, error: refereeError } = await supabase
   .eq("id", user.id)
   .single();
 
+const refereeId = user.id;
+
+
 if (refereeError || !referee) {
   alert("Acesso negado");
   await supabase.auth.signOut();
@@ -188,14 +191,17 @@ async function submitMatch() {
   }
 
   const { error } = await supabase.rpc("register_match", {
-    p_tournament_id: tournamentId,
-    p_round: roundNumber,
-    p_white: whitePlayer,
-    p_black: blackPlayer,
-    p_result_white: resultWhite,
-    p_result_black: resultBlack,
-    p_is_walkover: isWalkover
+  p_tournament_id: tournamentId,
+  p_round: roundNumber,
+  p_white: whitePlayer,
+  p_black: blackPlayer,
+  p_result_white: resultWhite,
+  p_result_black: resultBlack,
+  p_referee_id: refereeId,
+  p_is_walkover: isWalkover
   });
+
+
 
   if (error) {
     if (error.message.includes("unique_match_per_round")) {
