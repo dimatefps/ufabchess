@@ -217,6 +217,24 @@ hr.spacer {
   justify-content: center;
 }
 
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.standings-table th,
+.standings-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.standings-table th {
+  font-weight: 600;
+}
+
+
 @media (max-width: 768px) {
   .hero-container {
     flex-direction: column;
