@@ -42,17 +42,15 @@ document.getElementById("referee-name").textContent =
 const tableBody = document.getElementById("rollback-table");
 
 async function loadRollbacks() {
-  const { data, error } = await supabase
+  const { data: rollbacks, error } = await supabase
     .from("match_rollbacks")
     .select(`
       created_at,
       reason,
-      referee:referee_id(full_name),
-      match:match_id(
-        round_number,
-        player_white:player_white(full_name),
-        player_black:player_black(full_name)
-      )
+      round_number,
+      referee_id,
+      player_white,
+      player_black
     `)
     .order("created_at", { ascending: false });
 
@@ -61,21 +59,52 @@ async function loadRollbacks() {
     return;
   }
 
+  if (!rollbacks || rollbacks.length === 0) {
+    tableBody.innerHTML = "<tr><td colspan='4'>Nenhum rollback encontrado</td></tr>";
+    return;
+  }
+
+  const playerIds = new Set();
+  const refereeIds = new Set();
+
+  rollbacks.forEach(rb => {
+    if (rb.player_white) playerIds.add(rb.player_white);
+    if (rb.player_black) playerIds.add(rb.player_black);
+    if (rb.referee_id) refereeIds.add(rb.referee_id);
+  });
+
+  const { data: players } = await supabase
+    .from("players")
+    .select("id, full_name")
+    .in("id", [...playerIds]);
+
+  const { data: referees } = await supabase
+    .from("referees")
+    .select("id, full_name")
+    .in("id", [...refereeIds]);
+
+  const playerMap = Object.fromEntries(
+    (players ?? []).map(p => [p.id, p.full_name])
+  );
+
+  const refereeMap = Object.fromEntries(
+    (referees ?? []).map(r => [r.id, r.full_name])
+  );
+
   tableBody.innerHTML = "";
 
-  data.forEach(rb => {
+  rollbacks.forEach(rb => {
     const tr = document.createElement("tr");
+
+    const whiteName = playerMap[rb.player_white] ?? "?";
+    const blackName = playerMap[rb.player_black] ?? "?";
+    const refereeName = refereeMap[rb.referee_id] ?? "—";
 
     tr.innerHTML = `
       <td>${new Date(rb.created_at).toLocaleString()}</td>
-      <td>
-        Rodada ${rb.match.round_number} —
-        ${rb.match.player_white.full_name}
-        x
-        ${rb.match.player_black.full_name}
-      </td>
-      <td>${rb.referee.full_name}</td>
-      <td>${rb.reason}</td>
+      <td>Rodada ${rb.round_number ?? "?"} — ${whiteName} x ${blackName}</td>
+      <td>${refereeName}</td>
+      <td>${rb.reason ?? ""}</td>
     `;
 
     tableBody.appendChild(tr);
