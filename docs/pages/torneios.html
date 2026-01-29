@@ -1,58 +1,41 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UFABCHESS</title>
-    <link rel="icon" href="../assets/images/logoufabchess.ico" type="image/x-icon">
-    <link rel="stylesheet" href="../styles/global.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UFABCHESS • Torneios</title>
 
-
+  <link rel="icon" href="../assets/images/logoufabchess.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../styles/global.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
-    <div id="site-header"></div>
-    <main>
-        <h1>Torneios</h1>
-        <!-- <section>    
-            <h2>Torneios em andamento</h2>
-            <div>
-                <p>2ª Edição Torneio de Rápidas 2025Q3</p>
-                <p>Tabela atual</p>
-                <iframe
-  class="iframe-sheet"
-  src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTwEr_dya27DSiSUdM4UHlJA37DjHbeqzU3RLbeKB_0DHhBrFKKt8MB7i6zbHVeZ7Z-zIeebsPndkni/pubhtml?gid=247143586&amp;single=true&amp;widget=true&amp;headers=false"
-  height="850"
-  frameborder="0"
-  style="border:0;">
-</iframe>   
-            </div>
-            <div>
-                <h3>Pareamento Semanal</h3>
-                <iframe
-  class="iframe-sheet"
-  src="https://docs.google.com/spreadsheets/d/e/2PACX-1vQzPBLSeMUM_gy-dYvgSGJE0sXVmo_5DyySfz4WVBWi3vSq6Glu7n6bwSrSC0JcvO-sHOxqw-Vi9xq4/pubhtml?widget=false&headers=false&chrome=false"
-  height="740"
-  frameborder="0"
-  style="border:0;">
-</iframe>
+  <div id="site-header"></div>
 
-</iframe>
+ <main>
+  <h1>Torneios</h1>
 
-            </div>
-        </section> -->
-        <section>
-            <h2>Torneios anteriores</h2>
-            <div id="tournaments-list"></div>
-        </section>
-        <section>
-            <a href="./como-funciona-torneio-semanal.html"><button class="btn-primary">Como o torneio funciona</button></a>
-        </section>
-    </main>
-    <div id="site-footer"></div>
-    <script src="../scripts/shared/layout.js"></script>
-    <script type="module" src="../scripts/pages/torneios.js"></script>
+  <!-- <section>
+    <h2>Torneio em andamento</h2>
+    <div id="ongoing-tournament"></div>
+  </section> -->
 
+  <section>
+    <h2>Torneios anteriores</h2>
+    <div id="tournaments-list"></div>
+  </section>
+
+  <section>
+    <a href="./como-funciona-torneio-semanal.html">
+      <button class="btn-primary">Como o torneio funciona</button>
+    </a>
+  </section>
+</main>
+
+  <div id="site-footer"></div>
+
+  <script src="../scripts/shared/layout.js"></script>
+  <script type="module" src="../scripts/pages/torneios.js"></script>
 </body>
-
 </html>
