@@ -234,6 +234,48 @@ hr.spacer {
   font-weight: 600;
 }
 
+.top6-list li {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+
+  background: #ffffff;
+  color: #111;
+}
+
+.top6-list li:nth-child(1) {
+  background: #fff4cc;
+}
+
+.top6-list li:nth-child(2) {
+  background: #f4f6f8;
+}
+
+.top6-list li:nth-child(3) {
+  background: #fafafa;
+}
+
+.player-position {
+  color: #444;
+  font-weight: 600;
+}
+
+.player-name {
+  color: #111;
+  font-weight: 500;
+}
+
+.player-rating {
+  color: #111;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+
+
+
 
 @media (max-width: 768px) {
   .hero-container {
