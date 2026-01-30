@@ -105,10 +105,22 @@ function renderStandingsTable(standings, type) {
   }
 
   const rows = standings.map((s, index) => {
-    const rating =
-      type === "ongoing"
-        ? s.players?.rating_rapid
-        : s.rating_at_end;
+  let rating = "-";
+
+  if (type === "ongoing") {
+    const timeControl = s.tournaments?.time_control;
+
+    if (timeControl === "rapid") {
+      rating = s.players?.rating_rapid;
+    } else if (timeControl === "blitz") {
+      rating = s.players?.rating_blitz;
+    } else if (timeControl === "standard") {
+      rating = s.players?.rating_standard;
+    }
+  } else {
+    rating = s.rating_at_end;
+    }
+
 
     return `
       <tr>
