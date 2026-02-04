@@ -105,26 +105,20 @@ function renderStandingsTable(standings, type) {
   }
 
   const rows = standings.map((s, index) => {
-  let rating = "-";
+    let rating = "-";
 
-  if (type === "ongoing") {
-    const timeControl = s.tournaments?.time_control;
-
-    if (timeControl === "rapid") {
-      rating = s.players?.rating_rapid;
-    } else if (timeControl === "blitz") {
-      rating = s.players?.rating_blitz;
-    } else if (timeControl === "standard") {
-      rating = s.players?.rating_standard;
+    if (type === "ongoing") {
+      const timeControl = s.tournaments?.time_control;
+      if (timeControl === "rapid") rating = s.players?.rating_rapid;
+      else if (timeControl === "blitz") rating = s.players?.rating_blitz;
+      else if (timeControl === "standard") rating = s.players?.rating_standard;
+    } else {
+      rating = s.rating_at_end;
     }
-  } else {
-    rating = s.rating_at_end;
-    }
-
 
     return `
       <tr>
-        <td>${index + 1}</td>
+        <td><strong>${index + 1}</strong></td>
         <td>${s.players?.full_name ?? "-"}</td>
         <td>${s.points ?? 0}</td>
         <td>${s.games_played ?? 0}</td>
@@ -133,20 +127,23 @@ function renderStandingsTable(standings, type) {
     `;
   }).join("");
 
+  // Envolvendo a tabela na classe .table-responsive
   return `
-    <table class="standings-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Jogador</th>
-          <th>Pontos</th>
-          <th>Partidas</th>
-          <th>Rating</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows}
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th>Pos</th>
+            <th>Jogador</th>
+            <th>Pontos</th>
+            <th>Partidas</th>
+            <th>Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    </div>
   `;
 }
