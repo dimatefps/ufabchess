@@ -1,78 +1,122 @@
-# ufabchess-frontend
+# UFABChess Frontend
 
-Eu tava pensando em migrar o site da UFACHESS, que tá no Google Sites pra o meu GitHub Pages. Acho que eu vou ter mais liberdade.
+Frontend da **UFABChess**, projeto de organização, divulgação e gerenciamento de torneios de xadrez da UFABC.
 
-Migrar do Google Sites para o GitHub Pages te dá muito mais liberdade. No Google Sites você fica preso ao editor deles, com poucas opções de layout, código e performance. No GitHub Pages você controla tudo com HTML, CSS e JavaScript, pode versionar o site, trabalhar por commits e evoluir com o tempo.
+Este repositório contém apenas o **frontend estático**, construído com HTML, CSS e JavaScript puro, integrado ao **Supabase** para autenticação, banco de dados e regras de negócio.
 
-Alguns pontos importantes para pensar antes de migrar:
+---
 
-- O Google Sites é totalmente dinâmico e “pronto”. No GitHub Pages tudo é estático, então formulários, comentários ou áreas interativas exigem serviços externos.
+## Visão geral
 
-- O site é mais institucional e informativo, o GitHub Pages é perfeito.
+O site da UFABChess permite:
 
+* Visualizar torneios em andamento e finalizados
+* Acompanhar classificações e standings em tempo real
+* Consultar ratings dos jogadores
+* Acessar páginas informativas sobre regras, torneios e sistema de rating
+* Área administrativa para gerenciamento de torneios e partidas
 
-Um caminho bem comum e recomendado:
+---
 
-- Criar o site no GitHub Pages usando algo simples como HTML puro.
+## Tecnologias utilizadas
 
-- Replicar primeiro o conteúdo atual do Google Sites.
+* HTML5
+* CSS3
+* JavaScript (ES Modules)
+* Supabase (Auth, Database, RPC)
+* Git e GitHub
 
-- Depois melhorar layout, organização e identidade visual aos poucos.
+Não há framework frontend. A ideia é manter o projeto simples, leve e fácil de manter.
 
-A única coisa que é atualizada constantemente são as tabelas que a gente incorpora do Google Planilhas.
+---
 
-Dá para incorporar tabelas do Google Planilhas no GitHub Pages e elas continuam atualizando automaticamente.
-Isso funciona porque quem faz a atualização é o próprio Google, não o site. O GitHub Pages só exibe o conteúdo incorporado.
+## Estrutura de pastas
 
-Pontos importantes para não ter dor de cabeça:
+```
+docs/
+├── admin/                # Páginas e scripts administrativos
+├── auth/                 # Fluxos de autenticação
+├── components/           # Header, footer e componentes reutilizáveis
+├── pages/                # Páginas públicas do site
+├── scripts/
+│   ├── pages/            # Scripts específicos de páginas
+│   ├── services/         # Serviços de acesso ao Supabase
+│   └── shared/           # Lógica compartilhada (layout, auth, etc)
+├── styles/               # Estilos globais e por página
+└── assets/               # Imagens e ícones
+```
 
-- A planilha precisa estar publicada ou pública para leitura.
+---
 
-- Não dá para proteger dados sensíveis se for público.
+## Integração com Supabase
 
-- O iframe é o jeito mais rápido e robusto.
+O frontend se conecta ao Supabase para:
 
-- JavaScript é melhor se você quiser identidade visual consistente com o site.
+* Autenticação de usuários
+* Leitura de dados de torneios, jogadores e standings
+* Execução de funções SQL (RPC) para lógica complexa
+* Controle de acesso via RLS
 
+As credenciais públicas do Supabase ficam configuradas em:
 
-Eu quero transformar o que a gente usa no Google Planilhas, tipo o cadastro dos membros do clube, as pontuações, tudo. Eu quero migrar, eu quero inserir isso em tabelas de SQL, eu quero construir uma base de dados em SQL. Eu já posso mostrar no meu portfólio que eu uso SQL, nem no Google Planilhas ou portfólio.
+```
+docs/scripts/services/supabase.js
+```
 
-Quero transformar um projeto operacional em um projeto técnico de portfólio.
+---
 
+## Como rodar localmente
 
-- Google Planilhas é uma ferramenta de planilha.
-- SQL em um SGBD relacional é uma base de dados de verdade.
-- Migrar de planilhas para SQL é uma evolução clara de maturidade técnica.
+### 1. Clonar o repositório
 
-2. Arquitetura 100% gratuita que faz sentido
-Você precisa separar três coisas: frontend, backend e banco de dados.
+```bash
+git clone https://github.com/dimatefps/ufabchess-frontend.git
+cd ufabchess-frontend
+```
 
-Frontend
-- HTML, CSS e JavaScript puro
-- Hospedado no GitHub Pages
-- Zero custo
+### 2. Servir os arquivos localmente
 
-Banco de dados
-PostgreSQL gratuito em nuvem
-- Supabase
+Como o projeto usa ES Modules, **não abra o HTML direto pelo navegador**. Use um servidor local.
 
-Backend
-Preciso de um backend porque GitHub Pages não fala direto com banco SQL.
+Exemplos:
 
-Opções gratuitas:
-- Backend em Python com FasAPI.
-- Hospedado no Render
-- Esse backend expõe uma API REST.
+Com Python:
 
-Fluxo fica assim:
-Site estático → JavaScript → API Python → Banco SQL
+```bash
+python -m http.server 8000
+```
 
-Custos reais
+Com Node:
 
-- GitHub Pages: grátis.
+```bash
+npx serve docs
+```
 
-- Supabase: grátis.
+Depois, acesse:
 
-- Render: grátis.
+```
+http://localhost:8000
+```
 
-- Domínio: opcional.
+---
+
+## Autenticação e área admin
+
+* Usuários administrativos fazem login pela página de admin
+* A autenticação é feita via Supabase Auth
+* O controle de permissões é aplicado principalmente no backend (RLS e funções)
+
+---
+
+## Status do projeto
+
+Projeto em desenvolvimento contínuo, utilizado ativamente na organização dos torneios do UFABChess.
+
+Mudanças frequentes podem ocorrer, especialmente na área administrativa.
+
+---
+
+## Licença
+
+Este projeto é de uso interno do UFABChess.
+Distribuição, cópia ou reutilização devem ser discutidas com os organizadores.
