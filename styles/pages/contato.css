@@ -1,0 +1,15 @@
+
+.contato-icones {
+    display:flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 24px 0px;
+}
+
+.contato-icones img {
+    transition: transform 0.2s;
+}
+
+.contato-icones img:hover {
+    transform: scale(1.1);
+}

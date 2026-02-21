@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>UFABCHESS • Histórico de Rollbacks</title>
+  <link rel="stylesheet" href="./styles/admin.css">
+</head>
+<body>
+
+<h1>Histórico de Rollbacks</h1>
+<p id="referee-name"></p>
+
+<table border="1" cellpadding="8">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Partida</th>
+      <th>Árbitro</th>
+      <th>Motivo</th>
+    </tr>
+  </thead>
+  <tbody id="rollback-table"></tbody>
+</table>
+
+<br>
+<a href="./admin.html">Voltar ao painel</a>
+<button id="logout">Sair</button>
+
+<script type="module" src="./scripts/admin-rollbacks.js"></script>
+</body>
+</html>

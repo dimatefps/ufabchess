@@ -1,0 +1,503 @@
+@import url("./components/buttons.css");
+@import url("./layouts/header.css");
+@import url("./layouts/footer.css");
+
+:root {
+  /* Fundos */
+  --bg-main: #1e1e1e;
+  --bg-secondary: #242424;
+  --bg-alt: #f9f9f9;
+  --bg-footer: #0f0f0f;
+
+  /* Cores institucionais */
+  --color-accent: #e6b800; /* Amarelo UFABCHESS */
+  --color-primary: #0e5a3c; /* Verde UFABC */
+
+  /* Texto */
+  --text-main: #e6e6e6;
+  --text-secondary: #c7c7c7;
+  --text-alt: black;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex; /* Mantido para suporte ao footer fixo se necessário */
+  flex-direction: column;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: "Inter", system-ui, sans-serif;
+  /* font-size: 16px; */ /* Comentado: herdado do padrão */
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
+}
+
+/* --- Títulos --- */
+h1 {
+    font-family: 'Merriweather', Arial;
+    font-weight: 700; /* Alterado de 400 para 700 conforme sugestão de UX */
+    color: var(--color-accent);
+    text-align: center;
+    /* margin-bottom: 20px; */ /* Adicionado para melhor respiro */
+} 
+
+h2, h3 {
+  font-family: 'Merriweather';
+  font-weight: 700; /* Alterado de 400 para 700 */
+  color: var(--color-primary);
+  /* text-align: center; */ /* Sugerido centralizar h2 no mobile */
+}
+
+h1 { font-size: 48px; }
+h2 { font-size: 32px; }
+
+p {
+  color: var(--text-main);
+  padding: 14px 8px;
+  /* margin-bottom: 15px; */ /* Sugerido para separar blocos de texto */
+}
+
+/* --- Layout Base --- */
+.container {
+    max-width: 1200px; 
+    margin: 0 auto;    
+    width: 100%;       
+    padding: 0 20px;
+}
+
+section {
+  padding: 60px 0; /* Alterado de 24px 48px para focar em espaçamento vertical e container horizontal */
+  /* padding: 24px 48px; */ /* Retirado para evitar 'espremer' o conteúdo no mobile */
+}
+
+.section-alt {
+  background-color: var(--bg-main);
+}
+
+/* --- Hero Section --- */
+#hero {
+    background-color: var(--bg-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh; /* Adicionado para garantir preenchimento da tela inicial */
+    /* padding: 2rem; */ /* Comentado em favor do padding da section */
+}
+
+.hero-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* justify-self: space-between; alterado para justify-content */
+  width: 100%;
+  gap: 60px;
+}
+
+.hero-text {
+  flex: 2;
+  text-align: left;
+}
+
+.hero-text h1 {
+  text-align: left;
+  padding: 14px 8px;
+}
+
+#p-hero {
+  font-size: 28px; /* Reduzido de 32px para melhor hierarquia */
+  color: var(--text-secondary);
+  padding: 14px 8px;  
+}
+
+.hero-right-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px; /* Aumentado de 20px para 30px */
+}
+
+.hero-image img {
+  max-width: 100%;
+  height: auto;
+  width: 320px; /* Ajustado de 362px para manter proporção no container */
+}
+
+/* --- Conteúdo e Seções --- */
+#description {
+  background-color: var(--bg-secondary);
+}
+
+#events {
+  background-color: var(--bg-alt);    
+}
+
+.text-alt {
+  color: #0f0f0f;
+}
+
+.article {
+    background-color: #ffffff;
+}
+
+.article p {
+    color: var(--text-alt);
+    font-size: 16px;
+}
+
+.article ul, .article ol {
+  color: var(--text-alt);
+  font-size: 16px;
+}
+
+.btn-primary {
+  align-self: center;
+}
+
+.div-container {
+  gap: 20px;
+}
+
+/* .div-container p, button {
+  padding: 14px 8px;
+  gap: 20px;
+} */ /* Comentado para evitar conflitos com estilos específicos de botões */
+
+.center-btn-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 20px 0;
+}
+
+.center-btn-wrapper a,
+.center-btn-wrapper button {
+  margin: 0 auto;
+  display: inline-block;
+}
+
+/* hr.spacer {
+  border: none;
+  border-top: 2px solid var(--color-accent); 
+  margin: 8.5px auto; 
+  width: 93%; 
+  opacity: 0.8;
+} */ /* Comentado: sugestão de remover para limpar o design mobile */
+
+/* --- Elementos de Dados --- */
+.iframe-sheet {
+  width: 100%;
+  max-width: 950px; 
+  display: block;
+  margin: 0 8.5px; 
+  border: 0;
+}
+
+/* Container principal da tabela no ratings.html */
+.tabela-rating {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 20px 0;
+    /* justify-content: center; */ /* Mantido do seu original */
+}
+
+/* Wrapper para permitir scroll no celular sem quebrar o layout */
+.ratings-wrapper {
+    width: 100%;
+    max-width: 800px; /* Limita a largura no PC para melhor leitura */
+    overflow-x: auto;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.ratings-table-main {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--text-main);
+    min-width: 320px; /* Garante que não colapse no mobile */
+}
+
+.ratings-table-main th {
+    background-color: var(--color-primary);
+    color: #ffffff;
+    padding: 15px;
+    text-align: left;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ratings-table-main td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #333;
+}
+
+/* Efeito de destaque nas linhas */
+.ratings-table-main tbody tr:nth-child(even) {
+    background-color: #2a2a2a;
+}
+
+.ratings-table-main tbody tr:hover {
+    background-color: #333;
+}
+
+/* Estilização das colunas */
+.col-pos {
+    width: 50px;
+    text-align: center;
+    font-weight: bold;
+    color: var(--color-accent);
+}
+
+.col-player {
+    text-align: left;
+}
+
+.col-rating {
+    width: 100px;
+    text-align: center;
+    font-family: monospace;
+    font-weight: bold;
+    color: var(--color-accent);
+}
+/* --- Estilos para a Seção de Torneios --- */
+
+.tournament {
+    margin-bottom: 40px;
+    background-color: var(--bg-secondary); /* */
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid #333;
+}
+
+.tournament h3 {
+    color: var(--color-accent); /* */
+    margin-bottom: 8px;
+    font-size: 24px;
+}
+
+/* Container para permitir scroll horizontal no mobile */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 20px;
+    border-radius: 8px;
+}
+
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 500px; /* Garante que a tabela não esprema nomes no celular */
+    background-color: #1a1a1a;
+    color: var(--text-main);
+}
+
+.standings-table th {
+    background-color: var(--color-primary); /* */
+    color: #fff;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.standings-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #333;
+    font-size: 15px;
+}
+
+.standings-table tr:hover {
+    background-color: #252525; /* Efeito hover para PC */
+}
+
+/* Estilo para as colunas numéricas */
+.standings-table td:nth-child(1), 
+.standings-table td:nth-child(3),
+.standings-table td:nth-child(4),
+.standings-table td:nth-child(5) {
+    text-align: center;
+}
+
+.standings-table th:nth-child(1),
+.standings-table th:nth-child(3),
+.standings-table th:nth-child(4),
+.standings-table th:nth-child(5) {
+    text-align: center;
+}
+
+/* --- Código Antigo Comentado (Referência) --- */
+/* .standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.standings-table th,
+.standings-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+*/
+
+.standings-table th {
+  font-weight: 600;
+}
+
+/* --- Ranking List (Top 6) --- */
+.top6-list {
+  list-style: none;
+  margin: 30px 0;
+}
+
+.top6-list li {
+  display: flex; /* Alterado de grid para flex para melhor controle de alinhamento */
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px; /* Ajustado de 12px 16px */
+  background: #2a2a2a; /* Alterado do branco original para integrar ao tema escuro */
+  color: var(--text-main); /* Alterado de #111 */
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border-left: 4px solid transparent;
+  /* grid-template-columns: 32px 1fr auto; */
+  /* border-bottom: 1px solid #eee; */
+}
+
+.top6-list li:nth-child(1) { 
+  background: #3d3515; /* Tom de ouro escuro para legibilidade */
+  border-left-color: var(--color-accent); 
+  /* background: #fff4cc; */ 
+}
+.top6-list li:nth-child(2) { 
+  border-left-color: #c0c0c0; /* Prata */
+  /* background: #f4f6f8; */ 
+}
+.top6-list li:nth-child(3) { 
+  border-left-color: #cd7f32; /* Bronze */
+  /* background: #fafafa; */ 
+}
+
+.player-position {
+  /* color: #444; */ /* Comentado: herdado do item da lista */
+  font-weight: 600;
+}
+
+.player-name {
+  font-weight: 600;
+  flex-grow: 1;
+  margin-left: 15px;
+  /* color: #111; */
+}
+
+.player-rating {
+  font-family: monospace;
+  font-weight: bold;
+  color: var(--color-accent);
+  /* color: #111; */
+}
+
+/* --- Botões --- */
+.btn-primary, .btn-secondary {
+  min-width: 200px;
+  padding: 14px 28px;
+  font-size: 16px;
+  transition: transform 0.2s;
+}
+
+/* --- MEDIA QUERIES (Responsividade) --- */
+
+@media (max-width: 768px) {
+  section { padding: 40px 0; }
+
+  .hero-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 30px;
+  }
+
+  .hero-text {
+    text-align: center;
+  }
+  
+  .hero-text h1 {
+    font-size: 32px;
+    text-align: center; /* Garantindo centralização no mobile */
+  }
+
+  #p-hero {
+    font-size: 18px; /* Reduzido de 32px original para fluidez */
+  }
+
+  .about-text {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .center-btn-wrapper {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: 100%; /* Garante que o container ocupe a largura toda */
+  }
+
+  .btn-primary, .btn-secondary {
+    width: 100%; /* CTAs ocupam largura total para facilitar o clique */
+    max-width: 400px;
+  }
+
+  .hero-image img {
+    /* height: 195px; */ /* Comentado em favor de largura controlada */
+    width: 160px; /* Reduzido para aproximar o botão do topo */
+    height: auto;
+  }
+
+  .iframe-sheet {
+    max-width: 100%;
+  } 
+
+  .ranking-atual {
+    width: 100%;
+  }
+
+  .tabela-rating {
+    width: 100%;
+    align-items: center;
+  }
+
+  .ratings-table-main th, 
+  .ratings-table-main td {
+      padding: 10px; /* Espaçamento mais compacto no celular */
+      font-size: 14px;
+  }
+
+  .col-player {
+      max-width: 100px; /* Evita que nomes muito longos estiquem a tela */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+  }
+
+  /* Ranking mais compacto no mobile */
+  .top6-list li {
+    padding: 12px 15px;
+    font-size: 14px;
+  }
+}

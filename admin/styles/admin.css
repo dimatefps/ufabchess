@@ -1,0 +1,162 @@
+/* --- Variáveis Institucionais (Sincronizadas com o global.css) --- */
+:root {
+  --bg-main: #0f172a;
+  --bg-secondary: #1e293b;
+  --color-primary: #22c55e; /* Verde Sucesso */
+  --color-accent: #e6b800;  /* Amarelo UFABCHESS */
+  --text-main: #e5e7eb;
+  --text-muted: #cbd5f5;
+}
+
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  padding: 20px; /* Reduzido de 32px para ganhar espaço no mobile */
+  line-height: 1.5;
+}
+
+/* --- Títulos --- */
+h1 {
+  font-size: 1.75rem;
+  margin-bottom: 4px;
+  color: var(--color-accent); /* Destaque institucional */
+}
+
+p {
+  margin-bottom: 24px;
+  color: var(--text-muted);
+}
+
+/* --- Formulário e Fieldset --- */
+form {
+  max-width: 100%; /* No mobile ocupa tudo, no PC limita-se abaixo */
+  margin: 0 auto;
+}
+
+fieldset {
+  border: 1px solid #334155;
+  padding: 16px; /* Ajustado de 20px */
+  border-radius: 12px;
+  background-color: var(--bg-secondary);
+}
+
+legend {
+  padding: 0 10px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+/* --- Inputs e Labels --- */
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+input,
+select {
+  padding: 12px; /* Aumentado de 8px para facilitar o toque */
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background-color: #0f172a;
+  color: white;
+  font-size: 16px; /* Evita o zoom automático do iOS ao focar no campo */
+  appearance: none; /* Remove estilos padrão do navegador */
+}
+
+/* Adicionando um ícone customizado para os selects para indicar que são clicáveis */
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23cbd5f5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+/* --- Botões --- */
+button {
+  width: 100%;
+  padding: 14px; /* Aumentado de 10px */
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  background-color: var(--color-primary);
+  color: #052e16; /* Texto escuro sobre verde para melhor contraste */
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+#logout {
+  background-color: transparent;
+  color: #f87171;
+  border: 1px solid #f87171;
+  margin-top: 20px;
+}
+
+/* --- Partidas Recentes (Lista Estilizada) --- */
+h2 {
+  margin-top: 40px;
+  font-size: 1.25rem;
+  color: var(--text-main);
+}
+
+#matches-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 16px;
+}
+
+#matches-list li {
+  background-color: var(--bg-secondary);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  border-left: 4px solid var(--color-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+#matches-list button {
+  width: auto;
+  padding: 6px 12px;
+  font-size: 12px;
+  background-color: #ef4444;
+  color: white;
+}
+
+/* --- Ajustes de Status --- */
+#status-message {
+  margin-top: 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* --- CÓDIGO ANTIGO COMENTADO (Para referência) --- */
+/* body { padding: 32px; }
+form { max-width: 480px; }
+input, select { padding: 8px; font-size: 14px; }
+button { padding: 10px; }
+*/
+
+/* --- MEDIA QUERIES --- */
+@media (min-width: 768px) {
+  body {
+    padding: 40px;
+  }
+  
+  form {
+    max-width: 480px; /* No PC, mantém a largura contida */
+    margin: 0;
+  }
+}

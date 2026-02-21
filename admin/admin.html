@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>UFABCHESS • Admin</title>
+
+  <link rel="stylesheet" href="./styles/admin.css">
+</head>
+<body>
+
+  <h1>Painel Administrativo</h1>
+<p id="referee-name"></p>
+<p>Registro oficial de resultados</p>
+
+  <form id="match-form">
+
+    <fieldset>
+      <legend>Partida</legend>
+
+      <label>
+        Torneio
+        <select id="tournament-select" required>
+          <option value="">Selecione o torneio</option>
+        </select>
+      </label>
+
+      <label>
+        Rodada
+        <input type="number" id="round-number" min="1" required>
+      </label>
+
+      <label>
+        Jogador de Brancas
+        <select id="player-white" required>
+          <option value="">Selecione o jogador</option>
+        </select>
+      </label>
+
+      <label>
+        Jogador de Negras
+        <select id="player-black" required>
+          <option value="">Selecione o jogador</option>
+        </select>
+      </label>
+
+      <label>
+        Resultado
+        <select id="match-result" required>
+          <option value="">Selecione o resultado</option>
+          <option value="1-0">Vitória das brancas</option>
+          <option value="0.5-0.5">Empate</option>
+          <option value="0-1">Vitória das negras</option>
+          <option value="wo-white">W.O. brancas</option>
+          <option value="wo-black">W.O. negras</option>
+        </select>
+      </label>
+
+      <button type="submit">
+        Registrar resultado
+      </button>
+
+    </fieldset>
+
+  </form>
+  <a href="./admin-rollbacks.html" id="rollback-link">Ver histórico de rollbacks</a>
+
+  <h2>Partidas recentes</h2>
+<ul id="matches-list"></ul>
+
+  <button id="logout">Sair</button>
+
+
+  <div id="status-message"></div>
+
+  <script type="module" src="./scripts/admin.js"></script>
+
+</body>
+
+</html>

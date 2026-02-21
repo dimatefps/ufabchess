@@ -1,0 +1,119 @@
+header {
+    background-color: var(--bg-main);
+    padding: 10px 0;
+    border-bottom: 1px solid #333;
+}
+
+.header-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 60px;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.header-logo img {
+  height: 40px; 
+  width: auto;
+}
+
+.header-logo a:visited,
+.header-logo a:hover,
+.header-logo a:active {
+  color: inherit;
+  text-decoration: none;
+}
+
+.header-logo .logo-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  color: inherit;
+  text-decoration: none !important;
+}
+
+.header-logo .logo-link span {
+  text-decoration: none !important;
+}
+
+.header-logo .logo-link:hover,
+.header-logo .logo-link:visited,
+.header-logo .logo-link:active,
+.header-logo .logo-link:focus {
+  color: inherit;
+  text-decoration: none !important;
+}
+
+.header-links {
+  display: flex;
+  gap: 25px; 
+}
+
+.header-links a {
+  color: var(--text-main);
+  text-decoration: none;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.header-links a:hover {
+  color: var(--color-accent);
+}
+
+.header-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 60px;
+  padding: 0 50px; /* Isso controla o quanto ele "cola" nas bordas */
+}
+
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+}
+@media (max-width: 768px) {
+    .menu-toggle {
+        display: block; /* Garante que o botão apareça no celular */
+    }
+
+    .header-links {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 60px;
+        right: 0;
+        width: 100%;
+        background-color: var(--bg-footer);
+        padding: 20px;
+        text-align: center;
+        border-bottom: 2px solid var(--color-accent); /* Corrigido aqui */
+        z-index: 1000;
+    }
+    /* Esta é a classe que o JavaScript vai "ligar e desligar" */
+    .header-links.active {
+        display: flex !important;
+    }
+    
+    .header-links a {
+        padding: 15px 0;
+        width: 100%;
+        border-bottom: 1px solid #333;
+    }
+}
+
