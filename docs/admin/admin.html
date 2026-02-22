@@ -2,78 +2,159 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>UFABCHESS • Admin</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UFABCHESS • Painel Admin</title>
   <link rel="stylesheet" href="./styles/admin.css">
 </head>
 <body>
 
-  <h1>Painel Administrativo</h1>
-<p id="referee-name"></p>
-<p>Registro oficial de resultados</p>
+<div class="admin-layout">
 
-  <form id="match-form">
+  <!-- ── SIDEBAR ── -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">♟</span>
+      UFAB<span>CHESS</span>
+    </div>
 
-    <fieldset>
-      <legend>Partida</legend>
+    <div class="sidebar-referee">
+      <div class="ref-label">Sessão ativa</div>
+      <div class="ref-name" id="referee-name">—</div>
+    </div>
 
-      <label>
-        Torneio
-        <select id="tournament-select" required>
-          <option value="">Selecione o torneio</option>
-        </select>
-      </label>
+    <div class="sidebar-nav-label">Painel</div>
+    <a href="./admin.html" class="sidebar-link active">
+      <span class="link-icon">⚔</span> Registrar Partida
+    </a>
+    <a href="./admin-rollbacks.html" class="sidebar-link" id="rollback-link" style="display:none">
+      <span class="link-icon">↩</span> Histórico Rollbacks
+    </a>
 
-      <label>
-        Rodada
-        <input type="number" id="round-number" min="1" required>
-      </label>
+    <div class="sidebar-spacer"></div>
 
-      <label>
-        Jogador de Brancas
-        <select id="player-white" required>
-          <option value="">Selecione o jogador</option>
-        </select>
-      </label>
+    <button class="sidebar-logout" id="logout">
+      <span>⎋</span> Sair
+    </button>
+  </aside>
 
-      <label>
-        Jogador de Negras
-        <select id="player-black" required>
-          <option value="">Selecione o jogador</option>
-        </select>
-      </label>
+  <!-- ── MAIN ── -->
+  <main class="admin-main">
 
-      <label>
-        Resultado
-        <select id="match-result" required>
-          <option value="">Selecione o resultado</option>
-          <option value="1-0">Vitória das brancas</option>
-          <option value="0.5-0.5">Empate</option>
-          <option value="0-1">Vitória das negras</option>
-          <option value="wo-white">W.O. brancas</option>
-          <option value="wo-black">W.O. negras</option>
-        </select>
-      </label>
+    <h1 class="admin-page-title">Registrar Partida</h1>
+    <p class="admin-page-subtitle">Selecione os jogadores, defina a rodada e clique no resultado.</p>
 
-      <button type="submit">
-        Registrar resultado
-      </button>
+    <!-- Match form card -->
+    <div class="admin-card">
 
-    </fieldset>
+      <!-- Torneio + Rodada -->
+      <div class="match-meta-row">
+        <div class="form-field">
+          <label for="tournament-select">Torneio</label>
+          <select id="tournament-select" required>
+            <option value="">Selecione o torneio</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="round-number">Rodada</label>
+          <input type="number" id="round-number" min="1" placeholder="1" required>
+        </div>
+      </div>
 
-  </form>
-  <a href="./admin-rollbacks.html" id="rollback-link">Ver histórico de rollbacks</a>
+      <!-- Match builder -->
+      <div class="match-builder">
 
-  <h2>Partidas recentes</h2>
-<ul id="matches-list"></ul>
+        <!-- Players -->
+        <div>
+          <div class="players-row">
+            <!-- White -->
+            <div class="player-slot">
+              <div class="player-slot-label">
+                <span class="piece-icon white">♔</span>
+                Brancas
+              </div>
+              <select id="player-white" required>
+                <option value="">Selecione o jogador</option>
+              </select>
+            </div>
 
-  <button id="logout">Sair</button>
+            <!-- VS -->
+            <div class="vs-divider">
+              <span class="vs-text">VS</span>
+            </div>
 
+            <!-- Black -->
+            <div class="player-slot">
+              <div class="player-slot-label">
+                <span class="piece-icon black">♚</span>
+                Negras
+              </div>
+              <select id="player-black" required>
+                <option value="">Selecione o jogador</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
-  <div id="status-message"></div>
+        <!-- Result buttons -->
+        <div>
+          <div class="result-section-label">Resultado da Partida</div>
 
-  <script type="module" src="./scripts/admin.js"></script>
+          <div class="result-buttons">
+            <!-- White wins -->
+            <button type="button" class="result-btn white-win" data-result="1-0">
+              <span class="check-mark">✓</span>
+              <span class="result-btn-icon">♔</span>
+              <span class="result-btn-score">1 – 0</span>
+              <span class="result-btn-label">Brancas vencem</span>
+            </button>
+
+            <!-- Draw -->
+            <button type="button" class="result-btn draw" data-result="0.5-0.5">
+              <span class="check-mark">✓</span>
+              <span class="result-btn-icon">⚖</span>
+              <span class="result-btn-score">½ – ½</span>
+              <span class="result-btn-label">Empate</span>
+            </button>
+
+            <!-- Black wins -->
+            <button type="button" class="result-btn black-win" data-result="0-1">
+              <span class="check-mark">✓</span>
+              <span class="result-btn-icon">♚</span>
+              <span class="result-btn-score">0 – 1</span>
+              <span class="result-btn-label">Negras vencem</span>
+            </button>
+          </div>
+
+          <!-- W.O. options -->
+          <div class="wo-row" style="margin-top:10px;">
+            <button type="button" class="wo-btn" data-result="wo-white">
+              🏳 W.O. — Brancas perdem
+            </button>
+            <button type="button" class="wo-btn" data-result="wo-black">
+              🏳 W.O. — Negras perdem
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="submit-area">
+          <button class="btn-submit" id="submit-btn" disabled>
+            Registrar Partida
+          </button>
+          <div id="status-message"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Recent matches -->
+    <p class="section-header" style="margin-top:8px;">Partidas recentes</p>
+    <ul class="matches-list" id="matches-list"></ul>
+
+  </main>
+</div>
+
+<script type="module" src="./scripts/admin.js"></script>
 
 </body>
-
 </html>

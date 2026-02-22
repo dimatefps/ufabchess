@@ -13,7 +13,7 @@ if (!user) {
 }
 
 /* =======================
-   REFEREE CHECK (ADMIN)
+   REFEREE CHECK (ADMIN ONLY)
 ======================= */
 
 const { data: referee, error } = await supabase
@@ -23,7 +23,7 @@ const { data: referee, error } = await supabase
   .single();
 
 if (error || !referee || referee.role !== "admin") {
-  alert("Acesso restrito a administradores");
+  alert("Acesso restrito a administradores.");
   await supabase.auth.signOut();
   window.location.href = "../pages/admin-login.html";
 }
@@ -32,8 +32,17 @@ if (error || !referee || referee.role !== "admin") {
    SHOW NAME
 ======================= */
 
-document.getElementById("referee-name").textContent =
-  `Administrador: ${referee.full_name}`;
+const nameEl = document.getElementById("referee-name");
+if (nameEl) nameEl.textContent = referee.full_name;
+
+/* =======================
+   LOGOUT
+======================= */
+
+document.getElementById("logout").addEventListener("click", async () => {
+  await supabase.auth.signOut();
+  window.location.href = "../pages/admin-login.html";
+});
 
 /* =======================
    LOAD ROLLBACKS
@@ -42,6 +51,13 @@ document.getElementById("referee-name").textContent =
 const tableBody = document.getElementById("rollback-table");
 
 async function loadRollbacks() {
+  tableBody.innerHTML = `
+    <tr>
+      <td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;">
+        Carregando...
+      </td>
+    </tr>`;
+
   const { data: rollbacks, error } = await supabase
     .from("match_rollbacks")
     .select(`
@@ -55,56 +71,45 @@ async function loadRollbacks() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    alert(error.message);
+    tableBody.innerHTML = `<tr><td colspan="4" style="color:#fca5a5;padding:16px;">Erro ao carregar: ${error.message}</td></tr>`;
     return;
   }
 
   if (!rollbacks || rollbacks.length === 0) {
-    tableBody.innerHTML = "<tr><td colspan='4'>Nenhum rollback encontrado</td></tr>";
+    tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;">Nenhum rollback registrado.</td></tr>`;
     return;
   }
 
-  const playerIds = new Set();
-  const refereeIds = new Set();
+  // Batch-fetch names
+  const playerIds  = [...new Set(rollbacks.flatMap(rb => [rb.player_white, rb.player_black].filter(Boolean)))];
+  const refereeIds = [...new Set(rollbacks.map(rb => rb.referee_id).filter(Boolean))];
 
-  rollbacks.forEach(rb => {
-    if (rb.player_white) playerIds.add(rb.player_white);
-    if (rb.player_black) playerIds.add(rb.player_black);
-    if (rb.referee_id) refereeIds.add(rb.referee_id);
-  });
+  const [{ data: players }, { data: referees }] = await Promise.all([
+    supabase.from("players").select("id, full_name").in("id", playerIds),
+    supabase.from("referees").select("id, full_name").in("id", refereeIds)
+  ]);
 
-  const { data: players } = await supabase
-    .from("players")
-    .select("id, full_name")
-    .in("id", [...playerIds]);
-
-  const { data: referees } = await supabase
-    .from("referees")
-    .select("id, full_name")
-    .in("id", [...refereeIds]);
-
-  const playerMap = Object.fromEntries(
-    (players ?? []).map(p => [p.id, p.full_name])
-  );
-
-  const refereeMap = Object.fromEntries(
-    (referees ?? []).map(r => [r.id, r.full_name])
-  );
+  const playerMap  = Object.fromEntries((players  ?? []).map(p => [p.id, p.full_name]));
+  const refereeMap = Object.fromEntries((referees ?? []).map(r => [r.id, r.full_name]));
 
   tableBody.innerHTML = "";
 
   rollbacks.forEach(rb => {
     const tr = document.createElement("tr");
 
-    const whiteName = playerMap[rb.player_white] ?? "?";
-    const blackName = playerMap[rb.player_black] ?? "?";
-    const refereeName = refereeMap[rb.referee_id] ?? "—";
+    const white = playerMap[rb.player_white] ?? "?";
+    const black = playerMap[rb.player_black] ?? "?";
+    const ref   = refereeMap[rb.referee_id] ?? "—";
+    const date  = new Date(rb.created_at).toLocaleString("pt-BR");
 
     tr.innerHTML = `
-      <td>${new Date(rb.created_at).toLocaleString()}</td>
-      <td>Rodada ${rb.round_number ?? "?"} — ${whiteName} x ${blackName}</td>
-      <td>${refereeName}</td>
-      <td>${rb.reason ?? ""}</td>
+      <td style="color:var(--text-muted);white-space:nowrap;font-size:.82rem;">${date}</td>
+      <td>
+        <span style="font-weight:600;color:var(--text-primary);">Rd ${rb.round_number ?? "?"}</span>
+        <span style="color:var(--text-muted);font-size:.85rem;margin-left:6px;">♔ ${white} vs ♚ ${black}</span>
+      </td>
+      <td style="color:var(--text-secondary);">${ref}</td>
+      <td style="color:var(--text-muted);font-style:${rb.reason ? "normal" : "italic"};">${rb.reason || "Sem motivo informado"}</td>
     `;
 
     tableBody.appendChild(tr);
@@ -112,12 +117,3 @@ async function loadRollbacks() {
 }
 
 loadRollbacks();
-
-/* =======================
-   LOGOUT
-======================= */
-
-document.getElementById("logout").addEventListener("click", async () => {
-  await supabase.auth.signOut();
-  window.location.href = "../pages/admin-login.html";
-});

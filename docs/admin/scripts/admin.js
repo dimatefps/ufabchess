@@ -23,47 +23,94 @@ const { data: referee, error: refereeError } = await supabase
   .eq("id", user.id)
   .single();
 
-const refereeRole = referee.role;
-  
-const refereeId = user.id;
-
-
-
 if (refereeError || !referee) {
   alert("Acesso negado");
   await supabase.auth.signOut();
   window.location.href = "../pages/admin-login.html";
 }
 
+const refereeRole = referee.role;
+const refereeId   = user.id;
+
+/* =======================
+   UI REFERENCES
+======================= */
+
+const refereeNameEl    = document.getElementById("referee-name");
+const tournamentSelect = document.getElementById("tournament-select");
+const playerWhite      = document.getElementById("player-white");
+const playerBlack      = document.getElementById("player-black");
+const roundNumber      = document.getElementById("round-number");
+const submitBtn        = document.getElementById("submit-btn");
+const statusMsg        = document.getElementById("status-message");
+const matchesList      = document.getElementById("matches-list");
+const rollbackLink     = document.getElementById("rollback-link");
+
 /* =======================
    SHOW REFEREE NAME
 ======================= */
 
-const refereeNameEl = document.getElementById("referee-name");
+if (refereeNameEl) refereeNameEl.textContent = referee.full_name;
 
-if (refereeNameEl) {
-  refereeNameEl.textContent = `Árbitro: ${referee.full_name}`;
+// Show rollback link only for admins
+if (refereeRole === "admin" && rollbackLink) {
+  rollbackLink.style.display = "flex";
 }
 
-
+/* =======================
+   LOGOUT
+======================= */
 
 document.getElementById("logout").addEventListener("click", async () => {
   await supabase.auth.signOut();
   window.location.href = "../pages/admin-login.html";
 });
 
+/* =======================
+   RESULT SELECTION STATE
+   (replaces the old <select>)
+======================= */
 
+let selectedResult = null;
+let isSubmitting   = false;
 
-const tournamentSelect = document.getElementById("tournament-select");
-const playerWhiteSelect = document.getElementById("player-white");
-const playerBlackSelect = document.getElementById("player-black");
-const form = document.getElementById("match-form");
-const submitButton = form.querySelector('button[type="submit"]');
+// All clickable result buttons (main + W.O.)
+const allResultBtns = document.querySelectorAll(".result-btn, .wo-btn");
 
-let isSubmitting = false;
+allResultBtns.forEach(btn => {
+  btn.addEventListener("click", () => {
+    // Clear all selections
+    allResultBtns.forEach(b => b.classList.remove("selected"));
+
+    // Select this one
+    btn.classList.add("selected");
+    selectedResult = btn.dataset.result;
+
+    // Enable submit if players are also selected
+    updateSubmitState();
+  });
+});
+
+// Also enable submit when players change
+[playerWhite, playerBlack, tournamentSelect, roundNumber].forEach(el => {
+  el.addEventListener("change", updateSubmitState);
+  el.addEventListener("input", updateSubmitState);
+});
+
+function updateSubmitState() {
+  const ready =
+    tournamentSelect.value &&
+    roundNumber.value &&
+    playerWhite.value &&
+    playerBlack.value &&
+    playerWhite.value !== playerBlack.value &&
+    selectedResult !== null;
+
+  submitBtn.disabled = !ready;
+}
 
 /* =======================
-   LOAD INITIAL DATA
+   LOAD TOURNAMENTS
 ======================= */
 
 async function loadTournaments() {
@@ -73,31 +120,24 @@ async function loadTournaments() {
     .eq("status", "ongoing")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Erro ao carregar torneios", error);
-    return;
-  }
+  if (error) { console.error(error); return; }
 
   if (!data.length) {
-    const option = document.createElement("option");
-    option.disabled = true;
-    option.selected = true;
-    option.textContent = "Nenhum torneio em andamento";
-    tournamentSelect.appendChild(option);
+    const opt = new Option("Nenhum torneio em andamento", "");
+    opt.disabled = true;
+    tournamentSelect.add(opt);
     return;
   }
 
-  data.forEach(tournament => {
-    const option = document.createElement("option");
-    option.value = tournament.id;
-    option.textContent = tournament.edition
-      ? `${tournament.name} • Edição ${tournament.edition}`
-      : tournament.name;
-
-    tournamentSelect.appendChild(option);
+  data.forEach(t => {
+    const label = t.edition ? `${t.name} • Edição ${t.edition}` : t.name;
+    tournamentSelect.add(new Option(label, t.id));
   });
 }
 
+/* =======================
+   LOAD PLAYERS
+======================= */
 
 async function loadPlayers() {
   const { data, error } = await supabase
@@ -105,20 +145,11 @@ async function loadPlayers() {
     .select("id, full_name")
     .order("full_name");
 
-  if (error) {
-    console.error("Erro ao carregar jogadores", error);
-    return;
-  }
+  if (error) { console.error(error); return; }
 
-  data.forEach(player => {
-    const optionWhite = document.createElement("option");
-    optionWhite.value = player.id;
-    optionWhite.textContent = player.full_name;
-
-    const optionBlack = optionWhite.cloneNode(true);
-
-    playerWhiteSelect.appendChild(optionWhite);
-    playerBlackSelect.appendChild(optionBlack);
+  data.forEach(p => {
+    playerWhite.add(new Option(p.full_name, p.id));
+    playerBlack.add(new Option(p.full_name, p.id));
   });
 }
 
@@ -126,109 +157,91 @@ loadTournaments();
 loadPlayers();
 
 /* =======================
-   FORM SUBMIT
+   SUBMIT
 ======================= */
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
+submitBtn.addEventListener("click", async () => {
   if (isSubmitting) return;
   isSubmitting = true;
-
-  submitButton.disabled = true;
-  submitButton.textContent = "Enviando...";
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Registrando...";
+  hideStatus();
 
   try {
     await submitMatch();
+    showStatus("Partida registrada com sucesso! ✓", "success");
+    resetForm();
+    await loadRecentMatches();
   } catch (err) {
-    alert(err.message || "Erro inesperado");
+    showStatus(err.message || "Erro inesperado. Tente novamente.", "error");
   } finally {
     isSubmitting = false;
-    submitButton.disabled = false;
-    submitButton.textContent = "Registrar resultado";
+    submitBtn.textContent = "Registrar Partida";
+    updateSubmitState();
   }
 });
 
-/* =======================
-   SUBMIT MATCH
-======================= */
-
 async function submitMatch() {
-  const tournamentId = tournamentSelect.value;
-  const roundNumber = Number(document.getElementById("round-number").value);
-  const whitePlayer = playerWhiteSelect.value;
-  const blackPlayer = playerBlackSelect.value;
-  const resultValue = document.getElementById("match-result").value;
+  let resultWhite, resultBlack, isWalkover = false;
 
-  if (!tournamentId || !roundNumber || !whitePlayer || !blackPlayer || !resultValue) {
-    throw new Error("Preencha todos os campos");
+  switch (selectedResult) {
+    case "1-0":       resultWhite = 1;   resultBlack = 0;   break;
+    case "0.5-0.5":   resultWhite = 0.5; resultBlack = 0.5; break;
+    case "0-1":       resultWhite = 0;   resultBlack = 1;   break;
+    case "wo-white":  resultWhite = 1;   resultBlack = 0;   isWalkover = true; break;
+    case "wo-black":  resultWhite = 0;   resultBlack = 1;   isWalkover = true; break;
+    default: throw new Error("Selecione um resultado");
   }
 
-  if (whitePlayer === blackPlayer) {
-    throw new Error("Jogadores não podem ser iguais");
-  }
-
-  let resultWhite;
-  let resultBlack;
-  let isWalkover = false;
-
-  switch (resultValue) {
-    case "1-0":
-      resultWhite = 1;
-      resultBlack = 0;
-      break;
-
-    case "0.5-0.5":
-      resultWhite = 0.5;
-      resultBlack = 0.5;
-      break;
-
-    case "0-1":
-      resultWhite = 0;
-      resultBlack = 1;
-      break;
-
-    case "wo-white":
-      resultWhite = 1;
-      resultBlack = 0;
-      isWalkover = true;
-      break;
-
-    case "wo-black":
-      resultWhite = 0;
-      resultBlack = 1;
-      isWalkover = true;
-      break;
-
-    default:
-      throw new Error("Resultado inválido");
+  if (playerWhite.value === playerBlack.value) {
+    throw new Error("Os dois jogadores não podem ser o mesmo");
   }
 
   const { error } = await supabase.rpc("register_match", {
-  p_tournament_id: tournamentId,
-  p_round: roundNumber,
-  p_white: whitePlayer,
-  p_black: blackPlayer,
-  p_result_white: resultWhite,
-  p_result_black: resultBlack,
-  p_referee_id: refereeId,
-  p_is_walkover: isWalkover
+    p_tournament_id: tournamentSelect.value,
+    p_round:         Number(roundNumber.value),
+    p_white:         playerWhite.value,
+    p_black:         playerBlack.value,
+    p_result_white:  resultWhite,
+    p_result_black:  resultBlack,
+    p_referee_id:    refereeId,
+    p_is_walkover:   isWalkover
   });
-
-
 
   if (error) {
     if (error.message.includes("unique_match_per_round")) {
-      throw new Error("Esse confronto já foi registrado nessa rodada");
+      throw new Error("Esse confronto já foi registrado nessa rodada.");
     }
     throw error;
   }
-
-  alert("Partida registrada com sucesso");
-  form.reset();
 }
 
-const matchesList = document.getElementById("matches-list");
+function resetForm() {
+  // Keep tournament + round, clear players + result
+  playerWhite.value = "";
+  playerBlack.value = "";
+  selectedResult = null;
+  allResultBtns.forEach(b => b.classList.remove("selected"));
+  updateSubmitState();
+}
+
+/* =======================
+   STATUS MESSAGES
+======================= */
+
+function showStatus(msg, type) {
+  statusMsg.textContent = msg;
+  statusMsg.className = type; // "success" or "error"
+}
+
+function hideStatus() {
+  statusMsg.textContent = "";
+  statusMsg.className = "";
+}
+
+/* =======================
+   RECENT MATCHES
+======================= */
 
 async function loadRecentMatches() {
   const { data, error } = await supabase
@@ -243,22 +256,31 @@ async function loadRecentMatches() {
     .order("created_at", { ascending: false })
     .limit(10);
 
-  if (error) {
-    console.error(error);
-    return;
-  }
+  if (error) { console.error(error); return; }
 
   matchesList.innerHTML = "";
 
-  data.forEach(match => {
-    const li = document.createElement("li");
+  if (!data.length) {
+    matchesList.innerHTML = `<li style="color:var(--text-muted);font-size:.88rem;padding:12px 0;">Nenhuma partida registrada ainda.</li>`;
+    return;
+  }
 
-    li.textContent =
-      `Rodada ${match.round_number} - ` +
-      `${match.player_white.full_name} x ${match.player_black.full_name} `;
+  data.forEach((match, i) => {
+    const li = document.createElement("li");
+    li.className = "match-item";
+    li.style.animationDelay = `${i * 40}ms`;
+
+    li.innerHTML = `
+      <span class="match-round">Rd ${match.round_number}</span>
+      <span class="match-players">
+        ♔ ${match.player_white.full_name}
+        <span class="match-vs">vs</span>
+        ♚ ${match.player_black.full_name}
+      </span>`;
 
     if (refereeRole === "admin") {
       const btn = document.createElement("button");
+      btn.className = "btn-rollback";
       btn.textContent = "Desfazer";
       btn.onclick = () => rollbackMatch(match.id);
       li.appendChild(btn);
@@ -268,28 +290,27 @@ async function loadRecentMatches() {
   });
 }
 
+/* =======================
+   ROLLBACK
+======================= */
+
 async function rollbackMatch(matchId) {
   const reason = prompt("Motivo do rollback (opcional):");
-
   if (reason === null) return;
 
   const { error } = await supabase.rpc("rollback_match", {
-    p_match_id: matchId,
+    p_match_id:   matchId,
     p_referee_id: user.id,
-    p_reason: reason
+    p_reason:     reason
   });
 
   if (error) {
-    console.error(error);
     alert(error.message || "Erro ao realizar rollback");
     return;
   }
 
-  alert("Rollback realizado com sucesso");
-
+  showStatus("Rollback realizado com sucesso.", "success");
   await loadRecentMatches();
 }
-
-
 
 loadRecentMatches();

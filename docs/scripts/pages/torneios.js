@@ -5,57 +5,62 @@ import {
   getOngoingStandings
 } from "../services/tournaments.service.js";
 
+/* ══════════════════════════════════════
+   TITLE BADGE LOGIC
+   Requisito: mínimo 10 partidas jogadas
+   CMF ≥ 1600 | MF ≥ 1800 | GMF ≥ 2000
+   ══════════════════════════════════════ */
+function getTitleBadge(rating, gamesPlayed) {
+  if (!gamesPlayed || gamesPlayed < 10) return "";
+  if (rating >= 2000) return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
+  if (rating >= 1800) return `<span class="title-badge mf"  title="Mestre Federal">MF</span>`;
+  if (rating >= 1600) return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
+  return "";
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
-  const ongoingContainer = document.getElementById("ongoing-tournament");
+  const ongoingContainer  = document.getElementById("ongoing-tournament");
   const finishedContainer = document.getElementById("tournaments-list");
 
   try {
-    if (ongoingContainer) {
-      await loadOngoingTournament(ongoingContainer);
-    }
-
-    if (finishedContainer) {
-      await loadFinishedTournaments(finishedContainer);
-    }
+    if (ongoingContainer)  await loadOngoingTournament(ongoingContainer);
+    if (finishedContainer) await loadFinishedTournaments(finishedContainer);
   } catch (err) {
     console.error("Erro geral:", err);
   }
 });
 
-
-
-/* =========================
-   TORNEIO EM ANDAMENTO
-========================= */
-
+/* ── Torneio em andamento ── */
 async function loadOngoingTournament(container) {
   const tournament = await getOngoingTournament();
 
   if (!tournament) {
-    container.innerHTML = "<p>Nenhum torneio em andamento.</p>";
+    container.innerHTML = `
+      <div class="tournament" style="text-align:center;padding:40px 28px;">
+        <p style="color:var(--text-muted);font-size:.95rem;">Nenhum torneio em andamento no momento.</p>
+      </div>`;
     return;
   }
 
   container.innerHTML = `
-    <section class="tournament tournament-ongoing">
+    <div class="tournament tournament-ongoing">
+      <div class="live-badge">Em Andamento</div>
       <h3>${tournament.name}</h3>
       ${tournament.edition ? `<p>Edição ${tournament.edition}</p>` : ""}
-      <p><strong>Status:</strong> Em andamento</p>
-      <div class="standings">Carregando classificação...</div>
-    </section>
-  `;
+      <div class="standings">
+        <div style="color:var(--text-muted);font-size:.88rem;padding:12px 0;">Carregando classificação...</div>
+      </div>
+    </div>`;
 
-  const standingsContainer = container.querySelector(".standings");
+  const standingsEl = container.querySelector(".standings");
 
   async function loadStandings() {
     try {
       const standings = await getOngoingStandings(tournament.id);
-      standingsContainer.innerHTML =
-        renderStandingsTable(standings, "ongoing");
+      standingsEl.innerHTML = renderStandingsTable(standings, "ongoing");
     } catch (err) {
       console.error(err);
-      standingsContainer.innerHTML =
-        "<p>Erro ao carregar classificação.</p>";
+      standingsEl.innerHTML = `<p style="color:var(--text-muted);">Erro ao carregar classificação.</p>`;
     }
   }
 
@@ -63,71 +68,68 @@ async function loadOngoingTournament(container) {
   setInterval(loadStandings, 15000);
 }
 
-/* =========================
-   TORNEIOS FINALIZADOS
-========================= */
-
+/* ── Torneios finalizados ── */
 async function loadFinishedTournaments(container) {
   const tournaments = await getFinishedTournaments();
 
   if (!tournaments.length) {
-    container.innerHTML = "<p>Nenhum torneio encontrado.</p>";
+    container.innerHTML = `
+      <div class="tournament" style="text-align:center;padding:40px 28px;">
+        <p style="color:var(--text-muted);">Nenhum torneio finalizado ainda.</p>
+      </div>`;
     return;
   }
 
   for (const tournament of tournaments) {
-    const section = document.createElement("section");
+    const section = document.createElement("div");
     section.className = "tournament";
-
     section.innerHTML = `
       <h3>${tournament.name}</h3>
       ${tournament.edition ? `<p>Edição ${tournament.edition}</p>` : ""}
-      <div class="standings">Carregando classificação...</div>
-    `;
+      <div class="standings">
+        <div style="color:var(--text-muted);font-size:.88rem;padding:12px 0;">Carregando...</div>
+      </div>`;
 
     container.appendChild(section);
 
-    const standingsContainer = section.querySelector(".standings");
-
+    const standingsEl = section.querySelector(".standings");
     const standings = await getStandingsByTournament(tournament.id);
-    standingsContainer.innerHTML =
-      renderStandingsTable(standings, "finished");
+    standingsEl.innerHTML = renderStandingsTable(standings, "finished");
   }
 }
 
-/* =========================
-   TABELA
-========================= */
-
+/* ── Tabela de classificação ── */
 function renderStandingsTable(standings, type) {
   if (!standings || standings.length === 0) {
-    return "<p>Sem dados de classificação.</p>";
+    return `<p style="color:var(--text-muted);font-size:.88rem;margin-top:8px;">Sem dados de classificação.</p>`;
   }
 
   const rows = standings.map((s, index) => {
     let rating = "-";
+    let gamesPlayed = s.players?.games_played_rapid ?? 0;
 
     if (type === "ongoing") {
-      const timeControl = s.tournaments?.time_control;
-      if (timeControl === "rapid") rating = s.players?.rating_rapid;
-      else if (timeControl === "blitz") rating = s.players?.rating_blitz;
-      else if (timeControl === "standard") rating = s.players?.rating_standard;
+      const tc = s.tournaments?.time_control;
+      if (tc === "rapid")    rating = s.players?.rating_rapid;
+      else if (tc === "blitz")    rating = s.players?.rating_blitz;
+      else if (tc === "standard") rating = s.players?.rating_standard;
     } else {
       rating = s.rating_at_end;
     }
 
+    const badge = getTitleBadge(Number(rating), gamesPlayed);
+    const rankClass = index === 0 ? "rank-1" : index === 1 ? "rank-2" : index === 2 ? "rank-3" : "";
+
     return `
       <tr>
-        <td><strong>${index + 1}</strong></td>
-        <td>${s.players?.full_name ?? "-"}</td>
+        <td class="${rankClass}" style="font-weight:700;">${index + 1}</td>
+        <td>${badge}${s.players?.full_name ?? "-"}</td>
         <td>${s.points ?? 0}</td>
         <td>${s.games_played ?? 0}</td>
-        <td>${rating ?? "-"}</td>
-      </tr>
-    `;
+        <td style="font-family:'Courier New',monospace;font-weight:700;color:var(--green);">${rating ?? "-"}</td>
+      </tr>`;
   }).join("");
 
-  // Envolvendo a tabela na classe .table-responsive
   return `
     <div class="table-responsive">
       <table class="standings-table">
@@ -140,10 +142,7 @@ function renderStandingsTable(standings, type) {
             <th>Rating</th>
           </tr>
         </thead>
-        <tbody>
-          ${rows}
-        </tbody>
+        <tbody>${rows}</tbody>
       </table>
-    </div>
-  `;
+    </div>`;
 }

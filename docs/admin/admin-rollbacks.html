@@ -2,29 +2,64 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UFABCHESS • Histórico de Rollbacks</title>
   <link rel="stylesheet" href="./styles/admin.css">
 </head>
 <body>
 
-<h1>Histórico de Rollbacks</h1>
-<p id="referee-name"></p>
+<div class="admin-layout">
 
-<table border="1" cellpadding="8">
-  <thead>
-    <tr>
-      <th>Data</th>
-      <th>Partida</th>
-      <th>Árbitro</th>
-      <th>Motivo</th>
-    </tr>
-  </thead>
-  <tbody id="rollback-table"></tbody>
-</table>
+  <!-- ── SIDEBAR ── -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">♟</span>
+      UFAB<span>CHESS</span>
+    </div>
 
-<br>
-<a href="./admin.html">Voltar ao painel</a>
-<button id="logout">Sair</button>
+    <div class="sidebar-referee">
+      <div class="ref-label">Sessão ativa</div>
+      <div class="ref-name" id="referee-name">—</div>
+    </div>
+
+    <div class="sidebar-nav-label">Painel</div>
+    <a href="./admin.html" class="sidebar-link">
+      <span class="link-icon">⚔</span> Registrar Partida
+    </a>
+    <a href="./admin-rollbacks.html" class="sidebar-link active">
+      <span class="link-icon">↩</span> Histórico Rollbacks
+    </a>
+
+    <div class="sidebar-spacer"></div>
+
+    <button class="sidebar-logout" id="logout">
+      <span>⎋</span> Sair
+    </button>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="admin-main">
+    <h1 class="admin-page-title">Histórico de Rollbacks</h1>
+    <p class="admin-page-subtitle">Registro de todas as partidas desfeitas e seus motivos.</p>
+
+    <div class="admin-card" style="padding:0;overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table class="rollback-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Partida</th>
+              <th>Árbitro</th>
+              <th>Motivo</th>
+            </tr>
+          </thead>
+          <tbody id="rollback-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+</div>
 
 <script type="module" src="./scripts/admin-rollbacks.js"></script>
 </body>

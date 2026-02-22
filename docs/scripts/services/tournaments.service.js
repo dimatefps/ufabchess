@@ -33,7 +33,8 @@ export async function getStandingsByTournament(tournamentId) {
       games_played,
       rating_at_end,
       players (
-        full_name
+        full_name,
+        games_played_rapid
       )
     `)
     .eq("tournament_id", tournamentId)
@@ -73,7 +74,8 @@ export async function getOngoingStandings(tournamentId) {
         full_name,
         rating_rapid,
         rating_blitz,
-        rating_standard
+        rating_standard,
+        games_played_rapid
       ),
       tournaments (
         time_control

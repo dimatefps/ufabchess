@@ -1,38 +1,81 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UFABCHESS</title>
-    <link rel="icon" href="../assets/images/logoufabchess.ico" type="image/x-icon">
-    <link rel="stylesheet" href="../styles/global.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UFABCHESS — Rating</title>
+  <meta name="description" content="Ranking de rating Elo dos jogadores do Clube de Xadrez UFABC.">
+  <link rel="icon" href="../assets/images/logoufabchess.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../styles/global.css">
 </head>
 <body>
-    <div id="site-header"></div>
-    <main>
-        <section>
-            <h1>Rating UFABC</h1>
-        </section>
-        <section>
-            <div class="tabela-rating" id="ratings-table">
-  Carregando rating...
+  <div id="site-header"></div>
+
+  <main>
+    <div class="page-hero">
+      <div class="container">
+        <h1>Rating UFABC</h1>
+        <p>Ranking atualizado após cada rodada do torneio semanal de quinta-feira.</p>
+      </div>
+    </div>
+
+    <section>
+      <div class="container">
+
+        <!-- Legenda dos badges -->
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:20px;padding:14px 18px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);">
+          <span style="font-size:.75rem;font-weight:600;color:var(--text-muted);font-family:var(--font-body);white-space:nowrap;">Títulos (mín. 10 partidas):</span>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="title-badge cmf">CMF</span>
+              <span style="font-size:.78rem;color:var(--text-secondary);">Candidato a Mestre Federal — ≥ 1600 pts</span>
             </div>
-
-
-            <div>
-                <p>O sistema de rating da UFABCHESS é baseado em performance nos torneios internos, calculado a partir de critérios técnicos definidos pela entidade. </p> 
-                <p> Atualizado semanalmente conforme os resultados do Torneio Semanal.</p>
-                <p>🔗<a href="./como-funciona-rating.html">Saiba como o rating é calculado →</a></p>
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="title-badge mf">MF</span>
+              <span style="font-size:.78rem;color:var(--text-secondary);">Mestre Federal — ≥ 1800 pts</span>
             </div>
-        </section>
-    </main>
-    <div id="site-footer"></div>
-    <script src="../scripts/shared/layout.js"></script>
-    <script type="module" src="../scripts/pages/ratings.js"></script>
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="title-badge gmf">GMF</span>
+              <span style="font-size:.78rem;color:var(--text-secondary);">Grande Mestre Federal — ≥ 2000 pts</span>
+            </div>
+          </div>
+        </div>
 
+        <!-- Buscador -->
+        <div style="position:relative;margin-bottom:16px;">
+          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:.95rem;pointer-events:none;">⌕</span>
+          <input
+            id="search-player"
+            type="text"
+            placeholder="Buscar jogador..."
+            style="width:100%;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);
+                   font-family:var(--font-body);font-size:.9rem;padding:10px 14px 10px 36px;
+                   border-radius:var(--radius-sm);outline:none;transition:border-color .18s ease;"
+            oninput="filterRatings(this.value)"
+            onfocus="this.style.borderColor='var(--green)'"
+            onblur="this.style.borderColor='var(--border)'"
+          />
+        </div>
+
+        <div class="tabela-rating" id="ratings-table">
+          <div style="padding:48px;text-align:center;color:var(--text-muted);font-size:.9rem;">
+            Carregando ranking...
+          </div>
+        </div>
+
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-top:8px;">
+          <p style="color:var(--text-secondary);font-size:.9rem;line-height:1.6;">
+            Sistema baseado no modelo Elo (FIDE). Atualizado automaticamente após cada partida do Torneio Semanal.
+          </p>
+          <a href="./como-funciona-rating.html" class="btn-secondary">Como é calculado →</a>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <script src="../scripts/shared/layout.js"></script>
+  <script type="module" src="../scripts/pages/ratings.js"></script>
 </body>
-
 </html>
