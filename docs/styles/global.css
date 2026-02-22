@@ -359,7 +359,7 @@ section{padding:56px 0;}
   .hero-image img{width:160px;}
   .article-content{padding:24px 18px;}
   .center-btn-wrapper{flex-direction:column;}
-  .col-player{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .col-player{white-space:normal;word-break:break-word;}
   .contato-icones{flex-direction:column;}
   .contato-icones a{width:100%;}
   .k-table{flex-direction:column;}
