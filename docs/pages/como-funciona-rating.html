@@ -1,57 +1,117 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UFABCHESS</title>
-    <link rel="icon" href="../assets/images/logoufabchess.ico" type="image/x-icon">
-    <link rel="stylesheet" href="../styles/global.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-
-
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UFABCHESS — Sistema de Rating</title>
+  <link rel="icon" href="../assets/images/logoufabchess.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../styles/global.css">
 </head>
 <body>
-    <div id="site-header"></div>
-    <main>
-        <section>
-            <h1>♟️Como funciona o sistema de Rating do Clube de Xadrez UFABC</h1>
-        </section>
-        <section class="article">
-            <div>
-                <p>O sistema de <strong>rating do Clube de Xadrez UFABC</strong> é baseado no modelo oficial da FIDE (Federação Internacional de Xadrez), com adaptações específicas para o ambiente universitário. A proposta é oferecer uma maneira justa, transparente e estimulante de acompanhar a evolução dos jogadores ao longo dos torneios organizados pelo clube.</p>
-                <p>Todos os participantes começam com <strong>1400 pontos de rating</strong>. A cada partida jogada em torneios oficiais do clube, o rating de cada jogador é <strong>atualizado automaticamente</strong>, de acordo com o resultado da partida e com a força (rating) do adversário.</p>
-                <p>A fórmula utilizada é:</p>
-                <p><strong>ΔR = K × (S − E)</strong></p>
-                <p>Onde:</p>
-                <ul>
-                    <li><strong>ΔR</strong> é a variação no rating (quanto você ganha ou perde após uma partida);</li>
-                    <li><strong>K</strong> é o fator de desenvolvimento, que varia conforme sua experiência (número de partidas já disputadas);</li>
-                    <li><strong>S</strong> é o resultado da partida: 1 para vitória, 0,5 para empate e 0 para derrota;</li>
-                    <li><strong>E</strong> é a expectativa de vitória, calculada com base na diferença de rating entre os dois jogadores.</li>
-                </ul>
-                <p>O fator <strong>K</strong> serve para determinar o quanto seu rating pode variar por partida. Quanto mais novo você for no sistema (menos partidas), maior será essa variação — o que permite uma evolução mais rápida no início. À medida que você acumula mais partidas, a variação diminui, tornando seu rating mais estável.</p>
-                <p>A tabela usada é a seguinte:</p>
-                <ul>
-                    <li>Até 6 partidas: <strong>K = 120</strong></li>
-                    <li>De 7 a 12 partidas: <strong>K = 80</strong></li>
-                    <li>A partir de 12 partidas: <strong>K = 60</strong></li>
-                </ul>
-                <p>Com esse modelo, se você for um iniciante e vencer um jogador com rating mais alto, sua pontuação pode subir significativamente. Por outro lado, se um jogador experiente perde para alguém com rating muito menor, seu rating pode cair mais perceptivelmente.</p>
-                <p>Além de tornar a competição mais justa, o rating também serve como base para a <strong>conquista de títulos internos do clube</strong>, que funcionam como marcos de progressão técnica e reconhecimento dentro da comunidade:<p>
-                <ul>
-                    <li><strong>CMF – Candidato a Mestre Federal</strong>:  *a decidir</li>
-                    <li><strong>MF – Mestre Federal</strong>: *a decidir</li>
-                    <li><strong>GMF – Grande Mestre Federal</strong>: *a decidir</li>
-                </ul>
-                <p>Esses títulos são atribuídos automaticamente, com base na pontuação alcançada, e são exibidos no ranking oficial disponível aqui no site.</p>
-                <p>Para evoluir no rating, o mais importante é jogar com frequência, buscar bons resultados e desafiar adversários com rating igual ou superior ao seu. Empates contra jogadores mais fortes também ajudam a subir. Já derrotas contra jogadores mais fracos podem resultar em perda de pontos.</p>
-                <p>Participe dos torneios semanais, acompanhe seu progresso e veja sua evolução refletida ao vivo no nosso sistema de rating. Qualquer dúvida, entre em contato com a organização do clube.</p>
-            </div>
-        </section>
-    </main>
-    <div id="site-footer"></div>
-    <script src="../scripts/shared/layout.js"></script>
-</body>
+  <div id="site-header"></div>
 
+  <main>
+    <div class="page-hero">
+      <div class="container">
+        <h1>Sistema de Rating</h1>
+        <p>Baseado no modelo oficial da FIDE, adaptado para o ambiente universitário.</p>
+      </div>
+    </div>
+
+    <section>
+      <div class="container">
+        <div class="article-content">
+
+          <h2>Como funciona</h2>
+          <p>O sistema de <strong>rating do Clube de Xadrez UFABC</strong> é baseado no modelo oficial da FIDE (Federação Internacional de Xadrez), com adaptações para o ambiente universitário. A proposta é oferecer uma maneira justa, transparente e estimulante de acompanhar a evolução dos jogadores.</p>
+          <p>Todos os participantes começam com <strong>1400 pontos de rating</strong>. A cada partida em torneios oficiais, o rating é <strong>atualizado automaticamente</strong> com base no resultado e na força do adversário.</p>
+
+          <h2>A fórmula</h2>
+          <div class="formula">ΔR = K × (S − E)</div>
+          <ul>
+            <li><strong>ΔR</strong> — variação no rating após a partida</li>
+            <li><strong>K</strong> — fator de desenvolvimento (varia com o número de partidas)</li>
+            <li><strong>S</strong> — resultado: 1 vitória / 0,5 empate / 0 derrota</li>
+            <li><strong>E</strong> — expectativa de vitória baseada na diferença de rating</li>
+          </ul>
+
+          <h2>Expectativa de vitória (E)</h2>
+          <p>O valor <strong>E</strong> representa a probabilidade esperada de vitória antes da partida começar, calculada com base na diferença de rating entre os dois jogadores:</p>
+          <div class="formula">E = 1 / (1 + 10 <sup style="font-size:.7em">((Rb − Ra) / 400)</sup>)</div>
+          <ul>
+            <li><strong>Ra</strong> — rating do jogador</li>
+            <li><strong>Rb</strong> — rating do adversário</li>
+          </ul>
+          <p>Quanto maior a diferença de rating, mais extrema é a expectativa. Exemplos práticos:</p>
+          <div class="k-table">
+            <div class="k-badge">
+              <div class="k-val" style="font-size:1.2rem;">50%</div>
+              <div class="k-label">Ratings iguais</div>
+            </div>
+            <div class="k-badge">
+              <div class="k-val" style="font-size:1.2rem;">64%</div>
+              <div class="k-label">+100 pts de vantagem</div>
+            </div>
+            <div class="k-badge">
+              <div class="k-val" style="font-size:1.2rem;">76%</div>
+              <div class="k-label">+200 pts de vantagem</div>
+            </div>
+            <div class="k-badge">
+              <div class="k-val" style="font-size:1.2rem;">91%</div>
+              <div class="k-label">+400 pts de vantagem</div>
+            </div>
+          </div>
+          <div class="info-box">
+            <p>💡 <strong>Por que isso importa?</strong> Se você tem rating menor e vence, o ganho de pontos é alto — pois o resultado era improvável. Se perde para um adversário muito mais forte, a perda é mínima. O sistema recompensa coragem.</p>
+          </div>
+
+          <h2>Fator K</h2>
+          <p>O fator <strong>K</strong> define o quanto seu rating pode variar por partida. Iniciantes têm K maior para permitir evolução rápida — com mais partidas, o rating se estabiliza.</p>
+          <div class="k-table">
+            <div class="k-badge"><div class="k-val">120</div><div class="k-label">Até 6 partidas</div></div>
+            <div class="k-badge"><div class="k-val">80</div><div class="k-label">De 7 a 12 partidas</div></div>
+            <div class="k-badge"><div class="k-val">60</div><div class="k-label">A partir de 13 partidas</div></div>
+          </div>
+
+          <h2>Títulos internos</h2>
+          <p>O rating serve de base para os <strong>títulos internos do clube</strong>. Para conquistar um título, é necessário ter <strong>no mínimo 10 partidas disputadas</strong> (somando todas as edições dos torneios):</p>
+
+          <div style="display:flex;flex-direction:column;gap:12px;margin:16px 0;">
+            <div class="card" style="display:flex;align-items:center;gap:16px;padding:18px 22px;">
+              <span class="title-badge cmf" style="font-size:.8rem;padding:4px 10px;">CMF</span>
+              <div>
+                <div style="font-weight:700;font-size:.95rem;color:var(--text-primary);">Candidato a Mestre Federal</div>
+                <div style="font-size:.85rem;color:var(--text-secondary);">Rating ≥ 1600 e mínimo 10 partidas</div>
+              </div>
+            </div>
+            <div class="card" style="display:flex;align-items:center;gap:16px;padding:18px 22px;">
+              <span class="title-badge mf" style="font-size:.8rem;padding:4px 10px;">MF</span>
+              <div>
+                <div style="font-weight:700;font-size:.95rem;color:var(--text-primary);">Mestre Federal</div>
+                <div style="font-size:.85rem;color:var(--text-secondary);">Rating ≥ 1800 e mínimo 10 partidas</div>
+              </div>
+            </div>
+            <div class="card" style="display:flex;align-items:center;gap:16px;padding:18px 22px;">
+              <span class="title-badge gmf" style="font-size:.8rem;padding:4px 10px;">GMF</span>
+              <div>
+                <div style="font-weight:700;font-size:.95rem;color:var(--text-primary);">Grande Mestre Federal</div>
+                <div style="font-size:.85rem;color:var(--text-secondary);">Rating ≥ 2000 e mínimo 10 partidas</div>
+              </div>
+            </div>
+          </div>
+
+          <p>Esses títulos são atribuídos automaticamente com base na pontuação e exibidos no ranking oficial do site.</p>
+
+          <div class="info-box">
+            <p>💡 <strong>Dica:</strong> Para evoluir no rating, jogue com frequência e desafie adversários com rating igual ou superior ao seu. Empates contra jogadores mais fortes também somam!</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <script src="../scripts/shared/layout.js"></script>
+</body>
 </html>

@@ -1,39 +1,59 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UFABCHESS</title>
-    <link rel="icon" href="../assets/images/logoufabchess.ico" type="image/x-icon">
-    <link rel="stylesheet" href="../styles/global.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styles/pages/sobre.css">
-
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UFABCHESS — Sobre</title>
+  <meta name="description" content="Conheça a UFABCHESS, clube de xadrez da Universidade Federal do ABC.">
+  <link rel="icon" href="../assets/images/logoufabchess.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../styles/global.css">
+  <style>
+    .page-hero h1 { font-size: clamp(2.2rem, 5vw, 3.2rem); font-weight: 800; }
+    .card .card-title { font-size: .85rem; letter-spacing: .8px; }
+  </style>
 </head>
 <body>
-    <div id="site-header"></div>
-    <main>
-    <section class="container"> 
-        <div>
-            <h1>Sobre</h1>
+  <div id="site-header"></div>
+
+  <main>
+    <div class="page-hero">
+      <div class="container">
+        <h1>Sobre o Clube</h1>
+        <p>Xadrez universitário com estrutura profissional e competição de alto nível na UFABC.</p>
+      </div>
+    </div>
+
+    <section>
+      <div class="container">
+        <div class="card-grid" style="margin-bottom:32px;">
+          <div class="card">
+            <div class="card-title">Quem somos</div>
+            <p style="color:var(--text-secondary);line-height:1.75;">A UFABCHESS é uma entidade Universitária, voltada à prática, estudo e desenvolvimento do xadrez dentro da comunidade acadêmica.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">Nossa missão</div>
+            <p style="color:var(--text-secondary);line-height:1.75;">Estruturar uma base sólida com torneios regulares, um sistema de rating transparente e iniciativas que estimulem o aprimoramento técnico dos jogadores.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">Comunidade</div>
+            <p style="color:var(--text-secondary);line-height:1.75;">Atuamos de forma complementar ao Xadrez UFABC, valorizando a coexistência entre entidades e o fortalecimento do xadrez universitário como um todo.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">Torneios Semanais</div>
+            <p style="color:var(--text-secondary);line-height:1.75;">Toda quinta-feira às 18h15. Sistema suíço, árbitro oficial e rating atualizado em tempo real no site após cada rodada.</p>
+          </div>
         </div>
-        
-        <div class="about-text">
-                <p>A UFABCHESS é uma entidade estudantil reconhecida pela Universidade Federal do ABC, voltada à prática, estudo e desenvolvimento do xadrez dentro da comunidade acadêmica.</p>
-                <p>Nosso foco é estruturar uma base sólida e profissional; com torneios regulares, um sistema de rating transparente e iniciativas que estimulem o aprimoramento técnico dos jogadores.</p>
-                <p>Atuamos de forma complementar ao Xadrez UFABC, valorizando a coexistência entre entidades e o fortalecimento do xadrez universitário como um todo.</p>
-            </div>
 
-            <div  class="center-btn-wrapper">
-                <a href="./como-funciona-rating.html"><button class="btn-primary">Como funciona o rating</button></a> 
-                <a href="./como-funciona-torneio-semanal.html"><button class="btn-primary">Como funciona o torneio</button></a>
-                <a href="./como-utilizar-relogio-digital.html"><button class="btn-primary">Como utilizar o relógio</button></a>
-            </div>
-        </section>
-    </main>
-    <div id="site-footer"></div>
-    <script src="../scripts/shared/layout.js"></script>
+        <div class="center-btn-wrapper">
+          <a href="./como-funciona-rating.html" class="btn-primary">Como funciona o rating</a>
+          <a href="./como-funciona-torneio-semanal.html" class="btn-primary">Como funciona o torneio</a>
+          <a href="./como-utilizar-relogio-digital.html" class="btn-secondary">Como usar o relógio</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <script src="../scripts/shared/layout.js"></script>
 </body>
-
 </html>

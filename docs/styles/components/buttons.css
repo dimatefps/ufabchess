@@ -1,24 +1,50 @@
-.btn-primary {
-  background-color: var(--color-primary);
-  color: #ffffff;
+/* ── BUTTONS ── */
+.btn-primary,
+button.btn-primary {
+  background: var(--green);
+  color: #fff;
   border: none;
-  padding: 0.7rem 1.2rem;
-  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: .85rem;
+  font-weight: 600;
+  padding: 10px 22px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-weight: 500;
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
+  transition: background var(--ease), transform .12s;
+  display: inline-block;
+  text-decoration: none;
+  letter-spacing: .1px;
+  line-height: 1;
 }
 
-.btn-secondary {
+.btn-primary:hover,
+button.btn-primary:hover {
+  background: var(--green-dark);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-secondary,
+button.btn-secondary {
   background: transparent;
-  color: var(--color-accent);
-  border: 2px solid var(--color-accent);
-  padding: 0.7rem 1.2rem;
-  border-radius: 6px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  font-family: var(--font-body);
+  font-size: .85rem;
+  font-weight: 600;
+  padding: 9px 20px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-weight: 500;
-  font-family: 'Inter', sans-serif;
-  font-size: 16px;
-  
+  transition: border-color var(--ease), color var(--ease), transform .12s;
+  display: inline-block;
+  text-decoration: none;
+  letter-spacing: .1px;
+  line-height: 1;
+}
+
+.btn-secondary:hover,
+button.btn-secondary:hover {
+  border-color: var(--green);
+  color: var(--green);
+  transform: translateY(-1px);
 }

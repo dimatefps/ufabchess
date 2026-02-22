@@ -1,87 +1,95 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UFABCHESS</title>
-    <link rel="icon" href="assets/images/logoufabchess.ico" type="image/x-icon">
-    <link rel="stylesheet" href="styles/global.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UFABCHESS — Clube de Xadrez da UFABC</title>
+  <meta name="description" content="Clube de Xadrez da UFABC. Torneios semanais, sistema de rating Elo e comunidade ativa.">
+  <link rel="icon" href="assets/images/logoufabchess.ico" type="image/x-icon">
+  <link rel="stylesheet" href="styles/global.css">
 </head>
 <body>
-    <div id="site-header"></div>
-    
-    <main>
-        <section id="hero">
-            <div class="container">
-                <div class="hero-container">
-                    <div class="hero-text">
-                        <h1>Bem-vindo à UFABCHESS</h1>
-                        <p id="p-hero">Promovendo o pensamento estratégico, o aprendizado e a amizade através do xadrez.</p>
-                    </div>
+  <div id="site-header"></div>
 
-                    <div class="hero-right-side">
-                        <div class="hero-image">
-                            <img src="assets/images/logoufabchess_negativo.png" alt="logo-ufabchess">
-                        </div>
-                        <div class="hero-btn">
-                            <a href="pages/torneios.html">
-                                <button class="btn-primary" id="btn-proximo">Próximo Torneio</button>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+  <main>
+
+    <!-- ── HERO ── -->
+    <section id="hero">
+      <div class="container">
+        <div class="hero-container">
+          <div class="hero-text">
+            <h1>Bem-vindo à <span>UFABCHESS</span></h1>
+            <p id="p-hero">Clube de xadrez da Universidade Federal do ABC. Torneios semanais, rating Elo e comunidade competitiva.</p>
+            <div class="hero-cta">
+              <a href="pages/torneios.html" class="btn-primary">Ver Torneios</a>
+              <a href="https://chat.whatsapp.com/Iraq1DtSJ1z5ZHna1tvjQi" class="btn-secondary" target="_blank">Entrar no Grupo</a>
             </div>
-        </section>
-
-        <section id="description">
-            <div class="container">
-                <div class="div-container">
-                    <p>A UFABCHESS é um clube estudantil formado por alunos e ex-alunos da Universidade Federal do ABC. Organizamos torneios presenciais e online, mantemos um sistema próprio de rating e incentivamos o xadrez dentro e fora do campus.</p>
-                    <div class="center-btn-wrapper">
-                        <a href="pages/sobre.html"><button class="btn-secondary">Saiba mais</button></a>
-                    </div>
-                </div>
+          </div>
+          <div class="hero-right-side">
+            <div class="hero-image">
+              <img src="assets/images/logoufabchess_negativo.png" alt="Logo UFABCHESS">
             </div>
-        </section>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        <section id="events">
-            <div class="container">
-                <div class="div-container">
-                    <h2>Próximos Eventos</h2>
-                    <p class="text-alt">Torneio Interno de Rápidas Q1/2026 — <a href="https://docs.google.com/forms/d/e/1FAIpQLSd2jBtOTQ8r7VmSXT62U55IHuP8ML0TD6_toNLlIMlkvSL4Qg/viewform"><strong>inscreva-se aqui</strong></a></p>
-                </div>
-            </div>
-        </section>
+    <!-- ── DESCRIPTION ── -->
+    <section id="description">
+      <div class="container">
+        <p style="font-size:1.05rem;line-height:1.75;max-width:680px;">
+          A UFABCHESS é formada por alunos e ex-alunos da UFABC. Organizamos torneios presenciais com sistema suíço, mantemos um <strong style="color:var(--text-primary)">sistema de rating Elo</strong> próprio e incentivamos o xadrez dentro e fora do campus.
+        </p>
+        <div style="margin-top:24px;">
+          <a href="pages/sobre.html" class="btn-secondary">Saiba mais sobre nós</a>
+        </div>
+      </div>
+    </section>
 
-        <section class="top6">
-            <div class="container">
-                <h2>RANKING ATUAL</h2>
-                <div id="top6-container">
-                    Carregando ranking...
-                </div>
-                <div class="center-btn-wrapper">
-                    <a href="pages/ratings.html"><button class="btn-primary">Ver Ranking Completo</button></a>
-                </div>
-            </div>
-        </section>
+    <!-- ── EVENTS ── -->
+    <section id="events">
+      <div class="container">
+        <p class="section-label">Próximos Eventos</p>
+        <div class="events-card">
+          <div>
+            <div class="event-label">Torneio Interno</div>
+            <h3>Torneio de Rápidas Q1/2026</h3>
+            <p>Todo torneio semanal de quinta-feira, 18h15 — Sistema suíço, ritmo 10+0</p>
+          </div>
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSd2jBtOTQ8r7VmSXT62U55IHuP8ML0TD6_toNLlIMlkvSL4Qg/viewform" class="btn-primary" target="_blank">Inscreva-se</a>
+        </div>
+      </div>
+    </section>
 
-        <section id="participate">
-            <div class="container">
-                <div class="div-container">
-                    <h2>Como participar</h2>
-                    <p>Quer jogar com a gente? Participe dos torneios e entre para nossa comunidade!</p>
-                    <div class="center-btn-wrapper">
-                        <a href="https://chat.whatsapp.com/Iraq1DtSJ1z5ZHna1tvjQi"><button class="btn-primary">Entrar no grupo</button></a>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
+    <!-- ── TOP 6 ── -->
+    <section class="top6">
+      <div class="container">
+        <p class="section-label">Ranking Atual</p>
+        <div id="top6-container" style="color:var(--text-muted);padding:16px 0;font-size:.9rem;">
+          Carregando ranking...
+        </div>
+        <div style="margin-top:20px;">
+          <a href="pages/ratings.html" class="btn-secondary">Ver ranking completo →</a>
+        </div>
+      </div>
+    </section>
 
-    <div id="site-footer"></div>
+    <!-- ── PARTICIPATE ── -->
+    <section id="participate">
+      <div class="container">
+        <div class="participate-inner">
+          <h2>Como participar</h2>
+          <p>Quer jogar com a gente? Basta entrar no nosso grupo do WhatsApp, confirmar presença nas enquetes de quinta e aparecer no horário.</p>
+          <a href="https://chat.whatsapp.com/Iraq1DtSJ1z5ZHna1tvjQi" class="btn-primary" target="_blank">Entrar no grupo</a>
+        </div>
+      </div>
+    </section>
 
-    <script src="scripts/shared/layout.js"></script>
-    <script type="module" src="./scripts/pages/home.js"></script>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="scripts/shared/layout.js"></script>
+  <script type="module" src="scripts/pages/home.js"></script>
 </body>
 </html>

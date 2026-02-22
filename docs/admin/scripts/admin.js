@@ -1,4 +1,4 @@
-import { supabase } from "./supabase.js";
+import { supabase } from "../../scripts/services/supabase.js";
 
 /* =======================
    AUTH CHECK
