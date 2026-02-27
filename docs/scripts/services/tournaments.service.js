@@ -33,6 +33,7 @@ export async function getStandingsByTournament(tournamentId) {
       games_played,
       rating_at_end,
       players (
+        id,
         full_name,
         games_played_rapid
       )
@@ -71,6 +72,7 @@ export async function getOngoingStandings(tournamentId) {
       points,
       games_played,
       players (
+        id,
         full_name,
         rating_rapid,
         rating_blitz,

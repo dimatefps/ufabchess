@@ -18,6 +18,17 @@ function getTitleBadge(rating, gamesPlayed) {
   return "";
 }
 
+/* ── Nome clicável → perfil público ── */
+function playerLink(player) {
+  const name = player?.full_name ?? "-";
+  if (!player?.id) return name;
+  return `<a href="./jogador.html?id=${player.id}"
+    style="color:inherit;text-decoration:none;font-weight:inherit;transition:color .18s ease;"
+    onmouseover="this.style.color='var(--green)'"
+    onmouseout="this.style.color=''"
+  >${name}</a>`;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const ongoingContainer  = document.getElementById("ongoing-tournament");
   const finishedContainer = document.getElementById("tournaments-list");
@@ -44,9 +55,22 @@ async function loadOngoingTournament(container) {
 
   container.innerHTML = `
     <div class="tournament tournament-ongoing">
-      <div class="live-badge">Em Andamento</div>
-      <h3>${tournament.name}</h3>
-      ${tournament.edition ? `<p>Edição ${tournament.edition}</p>` : ""}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+        <div>
+          <div class="live-badge">Em Andamento</div>
+          <h3 style="margin-top:8px;margin-bottom:0;">${tournament.name}</h3>
+          ${tournament.edition ? `<p style="margin-bottom:0;">Edição ${tournament.edition}</p>` : ""}
+        </div>
+        <a href="./meu-perfil.html"
+          style="display:inline-flex;align-items:center;gap:7px;
+                 background:var(--green);color:#052e16;font-family:var(--font-body);
+                 font-size:.82rem;font-weight:700;padding:9px 18px;
+                 border-radius:var(--radius-sm);text-decoration:none;
+                 white-space:nowrap;transition:opacity .18s ease;"
+          onmouseover="this.style.opacity='.85'"
+          onmouseout="this.style.opacity='1'"
+        >♟️ Participar do torneio</a>
+      </div>
       <div class="standings">
         <div style="color:var(--text-muted);font-size:.88rem;padding:12px 0;">Carregando classificação...</div>
       </div>
@@ -106,7 +130,7 @@ function renderStandingsTable(standings, type) {
 
   const rows = standings.map((s, index) => {
     let rating = "-";
-    let gamesPlayed = s.players?.games_played_rapid ?? 0;
+    const gamesPlayed = s.players?.games_played_rapid ?? 0;
 
     if (type === "ongoing") {
       const tc = s.tournaments?.time_control;
@@ -117,13 +141,13 @@ function renderStandingsTable(standings, type) {
       rating = s.rating_at_end;
     }
 
-    const badge = getTitleBadge(Number(rating), gamesPlayed);
+    const badge     = getTitleBadge(Number(rating), gamesPlayed);
     const rankClass = index === 0 ? "rank-1" : index === 1 ? "rank-2" : index === 2 ? "rank-3" : "";
 
     return `
       <tr>
         <td class="${rankClass}" style="font-weight:700;">${index + 1}</td>
-        <td>${badge}${s.players?.full_name ?? "-"}</td>
+        <td>${badge}${playerLink(s.players)}</td>
         <td>${s.points ?? 0}</td>
         <td>${s.games_played ?? 0}</td>
         <td style="font-family:'Courier New',monospace;font-weight:700;color:var(--green);">${rating ?? "-"}</td>

@@ -12,7 +12,7 @@ const RATING_BY_LEVEL = {
   avancado:      1800
 };
 
-/* ── Title badge (mesmo padrão das outras páginas) ── */
+/* ── Title badge ── */
 function getTitleBadge(rating, gamesPlayed) {
   if (!gamesPlayed || gamesPlayed < 10) return "";
   if (rating >= 2000) return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
@@ -25,7 +25,7 @@ function getTitleBadge(rating, gamesPlayed) {
    STATE MANAGEMENT
    ═══════════════════════════════════════════ */
 
-const STATES = ["loading", "auth", "verify", "link", "register", "profile"];
+const STATES = ["loading", "auth", "verify", "link", "register", "profile", "new-password"];
 
 function showState(name) {
   STATES.forEach(s => {
@@ -38,12 +38,23 @@ function showState(name) {
    GLOBALS
    ═══════════════════════════════════════════ */
 
-let currentUser   = null;  // auth user do Supabase
-let matchedPlayer = null;  // player encontrado pelo email (do Forms)
-let myPlayer      = null;  // player vinculado ao user logado
+let currentUser   = null;
+let matchedPlayer = null;
+let myPlayer      = null;
+let ownChart      = null;
 
 /* ═══════════════════════════════════════════
-   INIT — Ponto de entrada principal
+   DETECÇÃO DO LINK DE RECOVERY
+   ═══════════════════════════════════════════ */
+
+supabase.auth.onAuthStateChange((event) => {
+  if (event === "PASSWORD_RECOVERY") {
+    showState("new-password");
+  }
+});
+
+/* ═══════════════════════════════════════════
+   INIT
    ═══════════════════════════════════════════ */
 
 async function init() {
@@ -60,14 +71,12 @@ async function init() {
 
     currentUser = user;
 
-    // ── SEGURANÇA: email precisa estar confirmado ──
     if (!user.email_confirmed_at) {
       document.getElementById("verify-email-display").textContent = user.email;
       showState("verify");
       return;
     }
 
-    // Email confirmado → verificar perfil de jogador
     await checkPlayerProfile(user);
 
   } catch (err) {
@@ -78,12 +87,9 @@ async function init() {
 
 /* ═══════════════════════════════════════════
    CHECK PLAYER PROFILE
-   Busca o jogador vinculado, ou tenta match
-   por email, ou abre cadastro novo.
    ═══════════════════════════════════════════ */
 
 async function checkPlayerProfile(user) {
-  // 1) Buscar player JÁ vinculado via user_id
   const { data: linked } = await supabase
     .from("players")
     .select("*")
@@ -96,8 +102,6 @@ async function checkPlayerProfile(user) {
     return;
   }
 
-  // 2) Buscar player pelo EMAIL (match com dados do Forms)
-  //    SOMENTE players sem user_id (ainda não reivindicados)
   const userEmail = user.email.toLowerCase().trim();
 
   const { data: emailMatch } = await supabase
@@ -113,17 +117,15 @@ async function checkPlayerProfile(user) {
     return;
   }
 
-  // 3) Sem match nenhum → cadastro de jogador novo
   showRegisterForm(user);
 }
 
 /* ═══════════════════════════════════════════
    RENDER: LINK PROMPT
-   Quando o email bate com jogador do Forms
    ═══════════════════════════════════════════ */
 
 function renderLinkPrompt(player) {
-  const el = document.getElementById("link-player-info");
+  const el    = document.getElementById("link-player-info");
   const badge = getTitleBadge(player.rating_rapid, player.games_played_rapid);
 
   el.innerHTML = `
@@ -139,14 +141,13 @@ function renderLinkPrompt(player) {
 }
 
 /* ═══════════════════════════════════════════
-   RENDER: REGISTER FORM (jogador novo)
+   RENDER: REGISTER FORM
    ═══════════════════════════════════════════ */
 
 function showRegisterForm(user) {
   const emailInput = document.getElementById("reg-email");
   if (emailInput) emailInput.value = user.email;
 
-  // Pré-preencher nome do signup
   const nameInput = document.getElementById("reg-name");
   const meta = user.user_metadata;
   if (meta?.full_name && nameInput && !nameInput.value) {
@@ -157,15 +158,14 @@ function showRegisterForm(user) {
 }
 
 /* ═══════════════════════════════════════════
-   RENDER: PROFILE VIEW (com check-in)
+   RENDER: PROFILE VIEW
    ═══════════════════════════════════════════ */
 
 async function renderProfileView(player, user) {
-  const grid = document.getElementById("profile-grid");
+  const grid     = document.getElementById("profile-grid");
   const initials = player.full_name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
-  const badge = getTitleBadge(player.rating_rapid, player.games_played_rapid);
+  const badge    = getTitleBadge(player.rating_rapid, player.games_played_rapid);
 
-  // Buscar rank do jogador
   const { count: totalPlayers } = await supabase
     .from("players")
     .select("id", { count: "exact", head: true });
@@ -177,7 +177,6 @@ async function renderProfileView(player, user) {
 
   const rank = (playersAbove ?? 0) + 1;
 
-  // Buscar semana aberta de torneio
   let weekHtml = "";
   try {
     weekHtml = await buildCheckinSection(player);
@@ -213,6 +212,24 @@ async function renderProfileView(player, user) {
       <div class="stat-label">Partidas Jogadas</div>
     </div>
 
+    <!-- Gráfico de evolução do rating -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="card-title" style="margin-bottom:0;">Evolução do Rating</div>
+        <div class="chart-tc-tabs">
+          <button class="tc-tab active" data-tc="rapid">Rapid</button>
+          <button class="tc-tab" data-tc="blitz">Blitz</button>
+          <button class="tc-tab" data-tc="standard">Standard</button>
+        </div>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="rating-chart-own"></canvas>
+      </div>
+      <div id="chart-own-empty" class="chart-empty" style="display:none;">
+        Nenhuma partida registrada nesta modalidade ainda.
+      </div>
+    </div>
+
     <!-- Check-in -->
     ${weekHtml}
 
@@ -223,7 +240,152 @@ async function renderProfileView(player, user) {
     </div>`;
 
   showState("profile");
-  setupCheckinButtons(player);
+
+  // Event delegation no grid — funciona mesmo após re-renders
+  grid.addEventListener("click", async (e) => {
+    // Botão Confirmar presença
+    if (e.target.id === "btn-checkin") {
+      const btn    = e.target;
+      const weekId = btn.dataset.weekId;
+      btn.disabled    = true;
+      btn.textContent = "Confirmando...";
+
+      const { error } = await supabase
+        .from("tournament_checkins")
+        .insert({ tournament_week_id: weekId, player_id: player.id });
+
+      if (error) {
+        btn.disabled    = false;
+        btn.textContent = "Confirmar presença";
+        const msg = error.code === "23505"
+          ? "Você já está confirmado nesta semana."
+          : (error.message || "Erro ao confirmar presença.");
+        alert(msg);
+      } else {
+        await renderProfileView(player, currentUser);
+      }
+    }
+
+    // Botão Cancelar presença
+    if (e.target.id === "btn-cancel-checkin") {
+      const btn    = e.target;
+      const weekId = btn.dataset.weekId;
+      btn.disabled    = true;
+      btn.textContent = "Cancelando...";
+
+      const { error } = await supabase
+        .from("tournament_checkins")
+        .delete()
+        .eq("tournament_week_id", weekId)
+        .eq("player_id", player.id);
+
+      if (error) {
+        btn.disabled    = false;
+        btn.textContent = "Cancelar presença";
+        alert(error.message || "Erro ao cancelar presença.");
+      } else {
+        await renderProfileView(player, currentUser);
+      }
+    }
+  }, { once: false });
+
+  // Carregar gráfico de rating
+  await loadOwnRatingChart(player.id);
+
+  // Tabs do gráfico
+  document.querySelectorAll(".tc-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tc-tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      renderOwnChart(tab.dataset.tc);
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════
+   GRÁFICO DE RATING HISTORY
+   ═══════════════════════════════════════════ */
+
+let allOwnHistory = [];
+
+async function loadOwnRatingChart(playerId) {
+  const { data: history } = await supabase
+    .from("rating_history")
+    .select("rating_before, rating_after, delta, time_control, created_at")
+    .eq("player_id", playerId)
+    .order("created_at", { ascending: true });
+
+  allOwnHistory = history ?? [];
+  renderOwnChart("rapid");
+}
+
+function renderOwnChart(tc) {
+  const canvas  = document.getElementById("rating-chart-own");
+  const emptyEl = document.getElementById("chart-own-empty");
+  if (!canvas) return;
+
+  const filtered = allOwnHistory.filter(h => h.time_control === tc);
+
+  if (!filtered.length) {
+    canvas.style.display = "none";
+    emptyEl.style.display = "block";
+    if (ownChart) { ownChart.destroy(); ownChart = null; }
+    return;
+  }
+
+  canvas.style.display = "block";
+  emptyEl.style.display = "none";
+
+  const labels = [];
+  const data   = [];
+
+  filtered.forEach((h, i) => {
+    if (i === 0) {
+      labels.push("Início");
+      data.push(h.rating_before);
+    }
+    labels.push(`#${i + 1}`);
+    data.push(h.rating_after);
+  });
+
+  if (ownChart) ownChart.destroy();
+
+  ownChart = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        data,
+        borderColor: "#22c55e",
+        backgroundColor: "rgba(34,197,94,0.08)",
+        borderWidth: 2,
+        pointRadius: data.length > 30 ? 2 : 4,
+        pointBackgroundColor: "#22c55e",
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.parsed.y} pts` }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: "#94a3b8", maxTicksLimit: 8, font: { size: 10 } },
+          grid: { color: "rgba(255,255,255,0.04)" }
+        },
+        y: {
+          ticks: { color: "#94a3b8", font: { size: 10 } },
+          grid: { color: "rgba(255,255,255,0.06)" }
+        }
+      }
+    }
+  });
 }
 
 /* ═══════════════════════════════════════════
@@ -231,7 +393,6 @@ async function renderProfileView(player, user) {
    ═══════════════════════════════════════════ */
 
 async function buildCheckinSection(player) {
-  // Buscar semana aberta
   const { data: week } = await supabase
     .from("tournament_weeks")
     .select(`
@@ -254,7 +415,6 @@ async function buildCheckinSection(player) {
       </div>`;
   }
 
-  // Buscar check-ins da semana
   const { data: checkins } = await supabase
     .from("tournament_checkins")
     .select(`
@@ -264,42 +424,46 @@ async function buildCheckinSection(player) {
     .eq("tournament_week_id", week.id)
     .order("checked_in_at", { ascending: true });
 
-  const checkinList = checkins ?? [];
-
-  // Verificar se EU já fiz check-in
-  const isCheckedIn = checkinList.some(c => c.player_id === player.id);
-
-  // Dados do torneio
+  const checkinList   = checkins ?? [];
+  const isCheckedIn   = checkinList.some(c => c.player_id === player.id);
   const tournamentName = week.tournaments?.name || "Torneio";
-  const edition = week.tournaments?.edition ? ` · Edição ${week.tournaments.edition}` : "";
-  const dateStr = formatDate(week.match_date);
-  const timeStr = week.match_time?.slice(0, 5) || "18:15";
-  const spotsLeft = week.max_players - checkinList.length;
+  const edition       = week.tournaments?.edition ? ` · Edição ${week.tournaments.edition}` : "";
+  const dateStr       = formatDate(week.match_date);
+  const timeStr       = week.match_time?.slice(0, 5) || "18:15";
+  const spotsLeft     = week.max_players - checkinList.length;
 
-  // Deadline: 3h antes do horário
-  const matchDateTime = new Date(`${week.match_date}T${week.match_time || "18:15:00"}`);
-  const deadline = new Date(matchDateTime.getTime() - 3 * 60 * 60 * 1000);
+  const matchDateTime  = new Date(`${week.match_date}T${week.match_time || "18:15:00"}`);
+  const deadline       = new Date(matchDateTime.getTime() - 3 * 60 * 60 * 1000);
   const deadlinePassed = new Date() > deadline;
-  const deadlineStr = deadline.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const deadlineStr    = deadline.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-  // Botão de ação
   let actionHtml;
   if (isCheckedIn) {
     actionHtml = deadlinePassed
-      ? `<span class="checkin-status checkin-confirmed">Presença confirmada</span>`
+      ? `<span class="checkin-status checkin-confirmed">✓ Presença confirmada</span>`
       : `<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-           <span class="checkin-status checkin-confirmed">Confirmado</span>
-           <button id="btn-cancel-checkin" data-week-id="${week.id}">Cancelar presença</button>
+           <span class="checkin-status checkin-confirmed">✓ Confirmado</span>
+           <button id="btn-cancel-checkin"
+             data-week-id="${week.id}"
+             style="background:transparent;color:#e88;border:1px solid rgba(200,80,80,.4);
+                    font-family:var(--font-body);font-size:.85rem;font-weight:600;
+                    padding:8px 16px;border-radius:var(--radius-sm);cursor:pointer;
+                    white-space:nowrap;">
+             Cancelar presença
+           </button>
          </div>`;
   } else if (deadlinePassed) {
     actionHtml = `<span style="font-size:.82rem;color:var(--text-muted);">Inscrição encerrada</span>`;
   } else if (spotsLeft <= 0) {
     actionHtml = `<span style="font-size:.82rem;color:#e88;">Vagas esgotadas</span>`;
   } else {
-    actionHtml = `<button id="btn-checkin" class="btn-primary" data-week-id="${week.id}">Confirmar presença</button>`;
+    actionHtml = `<button id="btn-checkin" class="btn-primary"
+      data-week-id="${week.id}"
+      style="white-space:nowrap;padding:10px 20px;">
+      Confirmar presença
+    </button>`;
   }
 
-  // Lista de jogadores confirmados
   const listHtml = checkinList.length
     ? checkinList.map((c, i) => {
         const b = getTitleBadge(c.players?.rating_rapid, c.players?.games_played_rapid);
@@ -319,82 +483,19 @@ async function buildCheckinSection(player) {
         <div class="checkin-event-info">
           <h3>Semana ${week.week_number} — ${tournamentName}${edition}</h3>
           <p>📅 ${dateStr} às ${timeStr}</p>
-          <p class="slots"><strong>${checkinList.length}</strong> / ${week.max_players} confirmados · ${spotsLeft > 0 ? `${spotsLeft} vagas restantes` : "Lotado"}</p>
-          ${!deadlinePassed ? `<p style="font-size:.76rem;color:var(--text-muted);margin-top:2px;">Inscrição encerra às ${deadlineStr}</p>` : ""}
+          <p class="slots">
+            <strong>${checkinList.length}</strong> / ${week.max_players} confirmados ·
+            ${spotsLeft > 0 ? `${spotsLeft} vagas restantes` : "Lotado"}
+          </p>
+          ${!deadlinePassed ? `<p style="font-size:.76rem;color:var(--text-muted);margin-top:2px;">Prazo: até ${deadlineStr}</p>` : ""}
         </div>
-        ${actionHtml}
+        <div>${actionHtml}</div>
       </div>
       <div class="checkin-list">
-        <div class="checkin-list-header">Jogadores confirmados</div>
+        <div class="checkin-list-header">Confirmados</div>
         ${listHtml}
       </div>
     </div>`;
-}
-
-/* ═══════════════════════════════════════════
-   CHECKIN BUTTONS
-   ═══════════════════════════════════════════ */
-
-function setupCheckinButtons(player) {
-  // Confirmar presença
-  const btnCheckin = document.getElementById("btn-checkin");
-  if (btnCheckin) {
-    btnCheckin.addEventListener("click", async () => {
-      const weekId = btnCheckin.dataset.weekId;
-      btnCheckin.disabled = true;
-      btnCheckin.textContent = "Confirmando...";
-
-      try {
-        const { data, error } = await supabase.rpc("checkin_tournament", {
-          p_tournament_week_id: weekId
-        });
-        if (error) throw error;
-
-        if (data?.success) {
-          await renderProfileView(player, currentUser);
-        } else {
-          alert(data?.error || "Erro ao confirmar presença.");
-          btnCheckin.disabled = false;
-          btnCheckin.textContent = "Confirmar presença";
-        }
-      } catch (err) {
-        alert(err.message || "Erro ao confirmar presença.");
-        btnCheckin.disabled = false;
-        btnCheckin.textContent = "Confirmar presença";
-      }
-    });
-  }
-
-  // Cancelar presença
-  const btnCancel = document.getElementById("btn-cancel-checkin");
-  if (btnCancel) {
-    btnCancel.addEventListener("click", async () => {
-      if (!confirm("Deseja cancelar sua presença nesta semana?")) return;
-
-      const weekId = btnCancel.dataset.weekId;
-      btnCancel.disabled = true;
-      btnCancel.textContent = "Cancelando...";
-
-      try {
-        const { data, error } = await supabase.rpc("cancel_checkin", {
-          p_tournament_week_id: weekId
-        });
-        if (error) throw error;
-
-        if (data?.success) {
-          await renderProfileView(player, currentUser);
-        } else {
-          alert(data?.error || "Erro ao cancelar.");
-          btnCancel.disabled = false;
-          btnCancel.textContent = "Cancelar presença";
-        }
-      } catch (err) {
-        alert(err.message || "Erro ao cancelar.");
-        btnCancel.disabled = false;
-        btnCancel.textContent = "Cancelar presença";
-      }
-    });
-  }
 }
 
 /* ═══════════════════════════════════════════
@@ -409,9 +510,11 @@ document.querySelectorAll(".auth-tab").forEach(tab => {
     tab.classList.add("active");
 
     document.getElementById("form-login").style.display  = target === "login" ? "block" : "none";
-    document.getElementById("form-signup").style.display  = target === "signup" ? "block" : "none";
+    document.getElementById("form-signup").style.display = target === "signup" ? "block" : "none";
 
-    // Limpar mensagens
+    const resetBox = document.getElementById("reset-box");
+    if (resetBox) resetBox.style.display = "none";
+
     document.querySelectorAll(".form-error, .form-success").forEach(el => el.classList.remove("visible"));
   });
 });
@@ -446,17 +549,103 @@ document.getElementById("form-login").addEventListener("submit", async (e) => {
     return;
   }
 
-  // Login OK → recarregar fluxo
   await init();
 });
 
-// Enter no campo de senha faz submit
 document.getElementById("login-password")?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") e.target.closest("form").requestSubmit();
 });
 
 /* ═══════════════════════════════════════════
-   AUTH — Signup (com confirmação de senha)
+   RESET DE SENHA
+   ═══════════════════════════════════════════ */
+
+document.getElementById("btn-forgot")?.addEventListener("click", () => {
+  const resetBox  = document.getElementById("reset-box");
+  const isVisible = resetBox.style.display !== "none";
+  resetBox.style.display = isVisible ? "none" : "block";
+
+  if (!isVisible) {
+    const loginEmail = document.getElementById("login-email")?.value;
+    if (loginEmail) document.getElementById("reset-email").value = loginEmail;
+    document.getElementById("reset-message").textContent = "";
+  }
+});
+
+document.getElementById("btn-send-reset")?.addEventListener("click", async () => {
+  const msgEl = document.getElementById("reset-message");
+  const email = document.getElementById("reset-email")?.value.trim();
+  const btn   = document.getElementById("btn-send-reset");
+
+  if (!email) {
+    msgEl.style.color = "#e88";
+    msgEl.textContent = "Digite seu email.";
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = "Enviando...";
+  msgEl.textContent = "";
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + "/pages/meu-perfil.html"
+  });
+
+  btn.disabled    = false;
+  btn.textContent = "Enviar link de redefinição";
+
+  if (error) {
+    msgEl.style.color = "#e88";
+    msgEl.textContent = "Erro ao enviar. Verifique o email e tente novamente.";
+  } else {
+    msgEl.style.color = "#22c55e";
+    msgEl.textContent = "✅ Link enviado! Verifique sua caixa de entrada.";
+  }
+});
+
+/* ═══════════════════════════════════════════
+   NOVA SENHA
+   ═══════════════════════════════════════════ */
+
+document.getElementById("btn-save-password")?.addEventListener("click", async () => {
+  const msgEl   = document.getElementById("new-pwd-message");
+  const pwd     = document.getElementById("new-pwd")?.value;
+  const confirm = document.getElementById("new-pwd-confirm")?.value;
+  const btn     = document.getElementById("btn-save-password");
+
+  msgEl.textContent = "";
+
+  if (!pwd || pwd.length < 6) {
+    msgEl.style.color = "#e88";
+    msgEl.textContent = "A senha deve ter pelo menos 6 caracteres.";
+    return;
+  }
+  if (pwd !== confirm) {
+    msgEl.style.color = "#e88";
+    msgEl.textContent = "As senhas não coincidem.";
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = "Salvando...";
+
+  const { error } = await supabase.auth.updateUser({ password: pwd });
+
+  btn.disabled    = false;
+  btn.textContent = "Salvar nova senha";
+
+  if (error) {
+    msgEl.style.color = "#e88";
+    msgEl.textContent = error.message || "Erro ao salvar senha.";
+  } else {
+    msgEl.style.color = "#22c55e";
+    msgEl.textContent = "✅ Senha redefinida! Redirecionando...";
+    setTimeout(() => init(), 2000);
+  }
+});
+
+/* ═══════════════════════════════════════════
+   AUTH — Signup
    ═══════════════════════════════════════════ */
 
 document.getElementById("form-signup").addEventListener("submit", async (e) => {
@@ -471,18 +660,14 @@ document.getElementById("form-signup").addEventListener("submit", async (e) => {
   const password = document.getElementById("signup-password").value;
   const confirm  = document.getElementById("signup-password-confirm").value;
 
-  // Validações
   if (!fullName || !email || !password || !confirm) {
-    showError(errorEl, "Preencha todos os campos.");
-    return;
+    showError(errorEl, "Preencha todos os campos."); return;
   }
   if (password.length < 6) {
-    showError(errorEl, "A senha precisa ter pelo menos 6 caracteres.");
-    return;
+    showError(errorEl, "A senha precisa ter pelo menos 6 caracteres."); return;
   }
   if (password !== confirm) {
-    showError(errorEl, "As senhas não coincidem.");
-    return;
+    showError(errorEl, "As senhas não coincidem."); return;
   }
 
   const btn = e.target.querySelector("button[type=submit]");
@@ -502,7 +687,6 @@ document.getElementById("form-signup").addEventListener("submit", async (e) => {
     return;
   }
 
-  // Email já existe
   if (data?.user?.identities?.length === 0) {
     showError(errorEl, "Esse email já possui uma conta. Tente fazer login.");
     btn.disabled = false;
@@ -510,15 +694,13 @@ document.getElementById("form-signup").addEventListener("submit", async (e) => {
     return;
   }
 
-  // Confirmação de email necessária (fluxo seguro)
   if (data?.user && !data?.session) {
-    showSuccess(successEl, "Conta criada! Enviamos um link de confirmação para seu email. Confirme e depois faça login.");
+    showSuccess(successEl, "Conta criada! Enviamos um link de confirmação para seu email.");
     btn.disabled = false;
     btn.textContent = "Criar conta";
     return;
   }
 
-  // Login automático (se confirm email desativado)
   await init();
 });
 
@@ -551,7 +733,6 @@ window.resendVerification = async function () {
 
 /* ═══════════════════════════════════════════
    LINK — Vincular jogador existente
-   (email match com dados do Forms)
    ═══════════════════════════════════════════ */
 
 document.getElementById("btn-link-confirm")?.addEventListener("click", async () => {
@@ -569,7 +750,6 @@ document.getElementById("btn-link-confirm")?.addEventListener("click", async () 
   btn.disabled = true;
   btn.textContent = "Vinculando...";
 
-  // RPC segura no servidor — valida tudo server-side
   const { error } = await supabase.rpc("link_player_to_user", {
     p_player_id: matchedPlayer.id
   });
@@ -581,12 +761,10 @@ document.getElementById("btn-link-confirm")?.addEventListener("click", async () 
     return;
   }
 
-  // Sucesso → carregar perfil
   matchedPlayer = null;
   await checkPlayerProfile(currentUser);
 });
 
-// "Não sou essa pessoa" → cadastro novo
 document.getElementById("btn-link-deny")?.addEventListener("click", () => {
   matchedPlayer = null;
   showRegisterForm(currentUser);
@@ -608,12 +786,11 @@ document.getElementById("form-register")?.addEventListener("submit", async (e) =
   const ra        = document.getElementById("reg-ra").value.trim() || null;
   const level     = document.getElementById("reg-level").value;
 
-  // Validações
   if (!fullName) { showError(errorEl, "Preencha seu nome completo."); return; }
   if (!birthYear || birthYear < 1950 || birthYear > 2015) { showError(errorEl, "Preencha um ano de nascimento válido."); return; }
-  if (!gender) { showError(errorEl, "Selecione seu gênero."); return; }
-  if (!phone) { showError(errorEl, "Preencha seu telefone."); return; }
-  if (!level) { showError(errorEl, "Selecione seu nível de jogo."); return; }
+  if (!gender)   { showError(errorEl, "Selecione seu gênero."); return; }
+  if (!phone)    { showError(errorEl, "Preencha seu telefone."); return; }
+  if (!level)    { showError(errorEl, "Selecione seu nível de jogo."); return; }
 
   if (!currentUser?.email_confirmed_at) {
     showError(errorEl, "Confirme seu email antes de criar o perfil.");
@@ -652,7 +829,6 @@ document.getElementById("form-register")?.addEventListener("submit", async (e) =
     return;
   }
 
-  // Sucesso → carregar perfil
   await checkPlayerProfile(currentUser);
 });
 
@@ -662,9 +838,9 @@ document.getElementById("form-register")?.addEventListener("submit", async (e) =
 
 window.handleLogout = async function () {
   await supabase.auth.signOut();
-  currentUser = null;
+  currentUser   = null;
   matchedPlayer = null;
-  myPlayer = null;
+  myPlayer      = null;
   showState("auth");
 };
 
@@ -684,14 +860,14 @@ function showSuccess(el, msg) {
 
 function translateError(message) {
   if (message.includes("already registered")) return "Este email já possui uma conta.";
-  if (message.includes("valid email")) return "Insira um email válido.";
+  if (message.includes("valid email"))        return "Insira um email válido.";
   if (message.includes("least 6") || message.includes("at least")) return "A senha deve ter pelo menos 6 caracteres.";
   if (message.includes("rate limit") || message.includes("too many") || message.includes("email rate")) return "Muitas tentativas. Aguarde 5 minutos e tente novamente.";
   return message;
 }
 
 function formatDate(dateStr) {
-  const date = new Date(dateStr + "T12:00:00");
+  const date   = new Date(dateStr + "T12:00:00");
   const days   = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
   const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
   return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;

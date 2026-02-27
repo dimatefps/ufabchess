@@ -7,6 +7,7 @@
   <meta name="description" content="Seu perfil no Clube de Xadrez UFABC. Rating, partidas e presença nos torneios.">
   <link rel="icon" href="../assets/images/logoufabchess.ico" type="image/x-icon">
   <link rel="stylesheet" href="../styles/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     /* ═══════════════════════════════════════
        MEU PERFIL — Styles
@@ -96,6 +97,28 @@
       display: none; line-height: 1.5;
     }
     .form-success.visible { display: block; }
+
+    /* ── FORGOT PASSWORD ── */
+    .forgot-link {
+      background: none; border: none;
+      color: var(--text-muted); font-size: .82rem;
+      cursor: pointer; text-decoration: underline;
+      font-family: var(--font-body); padding: 0;
+      margin-top: 10px; display: block; text-align: center;
+      transition: color var(--ease);
+    }
+    .forgot-link:hover { color: var(--text-secondary); }
+    .reset-box {
+      margin-top: 20px;
+      padding: 18px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+    .reset-box p.reset-title {
+      font-size: .8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--text-muted); margin-bottom: 12px;
+    }
 
     /* ── VERIFY EMAIL CARD ── */
     .verify-card {
@@ -203,6 +226,34 @@
       letter-spacing: 1px; color: var(--text-muted);
     }
 
+    /* ── CHART CARD ── */
+    .chart-card {
+      grid-column: 1 / -1;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 24px;
+    }
+    .chart-header {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 18px;
+      flex-wrap: wrap; gap: 10px;
+    }
+    .chart-tc-tabs { display: flex; gap: 6px; }
+    .tc-tab {
+      background: none; border: 1px solid var(--border);
+      color: var(--text-muted); font-family: var(--font-body);
+      font-size: .76rem; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px;
+      cursor: pointer; transition: all .18s ease;
+    }
+    .tc-tab.active {
+      background: var(--green); border-color: var(--green); color: #052e16;
+    }
+    .chart-canvas-wrap { position: relative; height: 200px; }
+    .chart-empty {
+      text-align: center; padding: 32px 20px;
+      color: var(--text-muted); font-size: .88rem;
+    }
+
     /* ── TOURNAMENT CHECK-IN CARD ── */
     .checkin-card {
       grid-column: 1 / -1;
@@ -229,58 +280,48 @@
       background: rgba(118,150,86,.12); border: 1px solid rgba(118,150,86,.25);
       color: var(--green);
     }
-    .checkin-confirmed::before { content: '✓ '; }
-
-    #btn-checkin { white-space: nowrap; min-width: 150px; }
-    #btn-cancel-checkin {
-      white-space: nowrap; min-width: 150px;
-      background: transparent; color: #e88;
-      border: 1px solid rgba(200,80,80,.4);
-      font-family: var(--font-body); font-size: .85rem; font-weight: 600;
-      padding: 9px 20px; border-radius: var(--radius-sm);
-      cursor: pointer; transition: all var(--ease);
-    }
-    #btn-cancel-checkin:hover { border-color: #e88; background: rgba(200,80,80,.08); }
-
-    .checkin-list { margin-top: 16px; }
-    .checkin-list-header {
-      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+    .checkin-players-list { margin-top: 16px; }
+    .checkin-players-title {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: 1px; color: var(--text-muted); margin-bottom: 10px;
     }
     .checkin-player {
-      display: flex; align-items: center; gap: 12px;
-      padding: 9px 14px; border-bottom: 1px solid var(--border);
-      font-size: .88rem; animation: fadeUp .25s ease both;
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: .88rem; animation: fadeUp .3s ease both;
     }
     .checkin-player:last-child { border-bottom: none; }
-    .checkin-player .cp-pos { width: 22px; font-weight: 600; font-size: .8rem; color: var(--text-muted); text-align: center; }
-    .checkin-player .cp-name { flex: 1; font-weight: 500; color: var(--text-primary); }
-    .checkin-player .cp-rating { font-family: 'Courier New', monospace; font-weight: 700; color: var(--green); font-size: .88rem; }
-
+    .cp-pos { font-size: .75rem; color: var(--text-muted); min-width: 20px; }
+    .cp-name { flex: 1; color: var(--text-primary); }
+    .cp-rating {
+      font-family: 'Courier New', monospace; font-weight: 700;
+      color: var(--green); font-size: .85rem;
+    }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(6px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* Profile actions */
+    /* ── PROFILE ACTIONS ── */
     .profile-actions {
       grid-column: 1 / -1;
-      display: flex; gap: 12px; flex-wrap: wrap;
-      justify-content: center; margin-top: 4px;
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+      padding-top: 4px;
     }
     .btn-logout {
       background: transparent; color: var(--text-muted);
-      border: 1px solid var(--border);
-      font-family: var(--font-body); font-size: .82rem; font-weight: 600;
-      padding: 9px 24px; border-radius: var(--radius-sm);
-      cursor: pointer; transition: border-color var(--ease), color var(--ease);
+      border: 1px solid var(--border); font-family: var(--font-body);
+      font-size: .82rem; font-weight: 600; padding: 8px 18px;
+      border-radius: var(--radius-sm); cursor: pointer;
+      transition: all var(--ease);
     }
-    .btn-logout:hover { border-color: #e88; color: #e88; }
+    .btn-logout:hover { color: #e88; border-color: rgba(200,80,80,.4); }
 
-    /* Loading */
+    /* ── LOADING ── */
     .loading-spinner {
-      display: flex; align-items: center; justify-content: center;
-      gap: 10px; padding: 60px 0; color: var(--text-muted); font-size: .9rem;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px;
+      padding: 60px 0; color: var(--text-muted); font-size: .9rem;
     }
     .spinner {
       width: 20px; height: 20px;
@@ -348,6 +389,21 @@
               <p id="login-error" class="form-error"></p>
             </form>
 
+            <!-- Esqueceu a senha -->
+            <button type="button" class="forgot-link" id="btn-forgot">Esqueceu a senha?</button>
+
+            <div id="reset-box" class="reset-box" style="display:none;">
+              <p class="reset-title">Redefinir senha</p>
+              <div class="pf-group">
+                <label for="reset-email">Seu email</label>
+                <input type="email" id="reset-email" placeholder="seu@email.com">
+              </div>
+              <button type="button" id="btn-send-reset" class="btn-primary" style="width:100%;padding:11px;">
+                Enviar link de redefinição
+              </button>
+              <p id="reset-message" style="margin-top:10px;font-size:.84rem;text-align:center;min-height:20px;"></p>
+            </div>
+
             <!-- Signup -->
             <form id="form-signup" style="display:none;">
               <div class="pf-group">
@@ -370,6 +426,26 @@
               <p id="signup-error" class="form-error"></p>
               <p id="signup-success" class="form-success"></p>
             </form>
+          </div>
+        </div>
+
+        <!-- ══ STATE: Nova Senha (após clicar no link do email) ══ -->
+        <div id="state-new-password" class="profile-state">
+          <div class="auth-card">
+            <h2>🔑 Redefinir senha</h2>
+            <p class="auth-sub">Escolha uma nova senha para sua conta.</p>
+            <div class="pf-group" style="margin-top:8px;">
+              <label for="new-pwd">Nova senha</label>
+              <input type="password" id="new-pwd" placeholder="Mínimo 6 caracteres">
+            </div>
+            <div class="pf-group">
+              <label for="new-pwd-confirm">Confirmar senha</label>
+              <input type="password" id="new-pwd-confirm" placeholder="Repita a senha">
+            </div>
+            <button type="button" id="btn-save-password" class="btn-primary" style="width:100%;padding:12px;">
+              Salvar nova senha
+            </button>
+            <p id="new-pwd-message" style="margin-top:12px;font-size:.84rem;text-align:center;min-height:20px;"></p>
           </div>
         </div>
 
