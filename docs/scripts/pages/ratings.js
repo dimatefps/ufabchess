@@ -60,7 +60,6 @@ function renderRatingsTable(players) {
         <td class="col-player">
           ${badge}${nameLink}
         </td>
-        <td class="col-games">${p.games_played_rapid ?? 0}</td>
         <td class="col-rating">${p.rating_rapid}</td>
       </tr>`;
   }).join("");
@@ -72,7 +71,6 @@ function renderRatingsTable(players) {
           <tr>
             <th class="col-pos">#</th>
             <th class="col-player">Jogador</th>
-            <th class="col-games">Partidas</th>
             <th class="col-rating">Rating</th>
           </tr>
         </thead>
@@ -103,7 +101,7 @@ window.filterRatings = function(query) {
     if (!noResult) {
       noResult = document.createElement("tr");
       noResult.className = "no-result-row";
-      noResult.innerHTML = `<td colspan="4" style="text-align:center;padding:28px;color:var(--text-muted);font-size:.88rem;">Nenhum jogador encontrado para "<strong style="color:var(--text-secondary)">${query}</strong>"</td>`;
+      noResult.innerHTML = `<td colspan="3" style="text-align:center;padding:28px;color:var(--text-muted);font-size:.88rem;">Nenhum jogador encontrado para "<strong style="color:var(--text-secondary)">${query}</strong>"</td>`;
       tbody.appendChild(noResult);
     } else {
       noResult.querySelector("td").innerHTML = `Nenhum jogador encontrado para "<strong style="color:var(--text-secondary)">${query}</strong>"`;
