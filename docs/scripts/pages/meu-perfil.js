@@ -43,12 +43,26 @@ let matchedPlayer = null;
 let myPlayer      = null;
 let ownChart      = null;
 
+// Detecta recovery SINCRONAMENTE pela URL — antes de qualquer operação async.
+// O link do Supabase vem com ?type=recovery ou #type=recovery na URL.
+const _urlHash   = new URLSearchParams(window.location.hash.replace("#", ""));
+const _urlParams = new URLSearchParams(window.location.search);
+let isRecoveryMode = (
+  _urlHash.get("type")   === "recovery" ||
+  _urlParams.get("type") === "recovery"
+);
+
+// Se já detectou pela URL, mostra o formulário imediatamente (sem flash)
+if (isRecoveryMode) showState("new-password");
+
 /* ═══════════════════════════════════════════
-   DETECÇÃO DO LINK DE RECOVERY
+   DETECÇÃO DO LINK DE RECOVERY (fallback via evento)
+   Cobre casos onde o token vem por outro formato
    ═══════════════════════════════════════════ */
 
 supabase.auth.onAuthStateChange((event) => {
   if (event === "PASSWORD_RECOVERY") {
+    isRecoveryMode = true;
     showState("new-password");
   }
 });
@@ -58,6 +72,9 @@ supabase.auth.onAuthStateChange((event) => {
    ═══════════════════════════════════════════ */
 
 async function init() {
+  // Se o usuário veio pelo link de reset de senha, não interferir
+  if (isRecoveryMode) return;
+
   showState("loading");
 
   try {
@@ -640,7 +657,10 @@ document.getElementById("btn-save-password")?.addEventListener("click", async ()
   } else {
     msgEl.style.color = "#22c55e";
     msgEl.textContent = "✅ Senha redefinida! Redirecionando...";
-    setTimeout(() => init(), 2000);
+    setTimeout(() => {
+      isRecoveryMode = false;
+      init();
+    }, 2000);
   }
 });
 
