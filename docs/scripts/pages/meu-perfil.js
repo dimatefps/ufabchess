@@ -60,10 +60,21 @@ if (isRecoveryMode) showState("new-password");
    Cobre casos onde o token vem por outro formato
    ═══════════════════════════════════════════ */
 
-supabase.auth.onAuthStateChange((event) => {
+let _initRunning = false;
+
+supabase.auth.onAuthStateChange(async (event, session) => {
+  // Usuário veio pelo link de redefinição de senha
   if (event === "PASSWORD_RECOVERY") {
     isRecoveryMode = true;
     showState("new-password");
+    return;
+  }
+
+  // Usuário confirmou o email ou entrou via magic link.
+  // O init() inicial pode ter rodado antes do token ser processado
+  // e mostrado a tela de login — aqui corrigimos isso.
+  if (event === "SIGNED_IN" && session && !isRecoveryMode && !_initRunning) {
+    await init();
   }
 });
 
@@ -74,6 +85,9 @@ supabase.auth.onAuthStateChange((event) => {
 async function init() {
   // Se o usuário veio pelo link de reset de senha, não interferir
   if (isRecoveryMode) return;
+  // Evita execuções paralelas (ex: SIGNED_IN disparando durante init manual)
+  if (_initRunning) return;
+  _initRunning = true;
 
   showState("loading");
 
@@ -99,6 +113,8 @@ async function init() {
   } catch (err) {
     console.error("Erro no init:", err);
     showState("auth");
+  } finally {
+    _initRunning = false;
   }
 }
 
