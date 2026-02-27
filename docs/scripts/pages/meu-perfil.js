@@ -686,7 +686,7 @@ function translateError(message) {
   if (message.includes("already registered")) return "Este email já possui uma conta.";
   if (message.includes("valid email")) return "Insira um email válido.";
   if (message.includes("least 6") || message.includes("at least")) return "A senha deve ter pelo menos 6 caracteres.";
-  if (message.includes("rate limit") || message.includes("too many")) return "Muitas tentativas. Aguarde um momento e tente novamente.";
+  if (message.includes("rate limit") || message.includes("too many") || message.includes("email rate")) return "Muitas tentativas. Aguarde 5 minutos e tente novamente.";
   return message;
 }
 
