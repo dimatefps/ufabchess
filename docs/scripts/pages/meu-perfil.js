@@ -34,6 +34,33 @@ function showState(name) {
   });
 }
 
+/* Sempre que for para a tela de auth, resetar para a aba de Login.
+   Evita que a pessoa volte vendo a aba "Criar conta" aberta. */
+function goToAuth() {
+  // Resetar abas — ativar "login", desativar "signup"
+  document.querySelectorAll(".auth-tab").forEach(tab => {
+    tab.classList.toggle("active", tab.dataset.tab === "login");
+  });
+
+  // Mostrar form-login, esconder form-signup
+  const formLogin  = document.getElementById("form-login");
+  const formSignup = document.getElementById("form-signup");
+  if (formLogin)  formLogin.style.display  = "block";
+  if (formSignup) formSignup.style.display = "none";
+
+  // Limpar todos os campos e mensagens do form de signup
+  const signupForm = document.getElementById("form-signup");
+  if (signupForm) signupForm.reset();
+  document.querySelectorAll(".form-error, .form-success")
+    .forEach(el => el.classList.remove("visible"));
+
+  // Esconder reset box se estiver aberto
+  const resetBox = document.getElementById("reset-box");
+  if (resetBox) resetBox.style.display = "none";
+
+  showState("auth");
+}
+
 /* ═══════════════════════════════════════════
    GLOBALS
    ═══════════════════════════════════════════ */
@@ -101,7 +128,7 @@ async function init() {
 
     if (error || !user) {
       currentUser = null;
-      showState("auth");
+      goToAuth();
       return;
     }
 
@@ -117,7 +144,7 @@ async function init() {
 
   } catch (err) {
     console.error("Erro no init:", err);
-    showState("auth");
+    goToAuth();
   } finally {
     _initRunning = false;
   }
@@ -891,7 +918,7 @@ window.handleLogout = async function () {
   currentUser   = null;
   matchedPlayer = null;
   myPlayer      = null;
-  showState("auth");
+  goToAuth();
 };
 
 /* ═══════════════════════════════════════════
