@@ -98,13 +98,24 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     return;
   }
 
-  // SIGNED_IN: dispara quando o token de confirmação é trocado por sessão.
-  // Esse é o único lugar confiável para chamar init() após confirmação,
-  // pois o token pode demorar a ser processado e o init() inicial pode
-  // ter rodado antes disso (race condition).
-  if (event === "SIGNED_IN" && session && !isRecoveryMode) {
+  // SIGNED_IN após confirmação de email (type=signup na URL).
+  // Não dispara para login normal — nesses casos o handler de login
+  // já chama init() diretamente, evitando dupla execução.
+  if (event === "SIGNED_IN" && session && !isRecoveryMode && isEmailConfirmMode) {
     isEmailConfirmMode = false; // libera o init() para rodar
     if (!_initRunning) await init();
+  }
+
+  // SIGNED_OUT: limpar estado e voltar para login
+  if (event === "SIGNED_OUT") {
+    currentUser   = null;
+    matchedPlayer = null;
+    myPlayer      = null;
+    ownChart      = null;
+    if (window._gridAbortController) {
+      window._gridAbortController.abort();
+      window._gridAbortController = null;
+    }
   }
 });
 
@@ -262,6 +273,10 @@ async function renderProfileView(player, user) {
       </div>`;
   }
 
+  // Destruir chart existente antes de reconstruir o DOM —
+  // evita ownChart.destroy() apontar para canvas já removido
+  if (ownChart) { ownChart.destroy(); ownChart = null; }
+
   grid.innerHTML = `
     <!-- Header -->
     <div class="profile-header-card">
@@ -312,7 +327,14 @@ async function renderProfileView(player, user) {
 
   showState("profile");
 
-  // Event delegation no grid — funciona mesmo após re-renders
+  // Event delegation no grid com AbortController.
+  // Cancela o listener anterior antes de adicionar um novo,
+  // evitando acúmulo de handlers a cada re-render (checkin/cancel).
+  if (window._gridAbortController) {
+    window._gridAbortController.abort();
+  }
+  window._gridAbortController = new AbortController();
+
   grid.addEventListener("click", async (e) => {
     // Botão Confirmar presença
     if (e.target.id === "btn-checkin") {
@@ -358,7 +380,7 @@ async function renderProfileView(player, user) {
         await renderProfileView(player, currentUser);
       }
     }
-  }, { once: false });
+  }, { signal: window._gridAbortController.signal });
 
   // Carregar gráfico de rating
   await loadOwnRatingChart(player.id);
@@ -751,7 +773,12 @@ document.getElementById("form-signup").addEventListener("submit", async (e) => {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName } }
+    options: {
+      data: { full_name: fullName },
+      // Ao clicar no link de confirmação, redirecionar direto para meu-perfil.html
+      // onde o fluxo detecta type=signup e mostra vinculação ou cadastro automaticamente
+      emailRedirectTo: window.location.origin + "/pages/meu-perfil.html"
+    }
   });
 
   if (error) {
@@ -793,7 +820,10 @@ window.resendVerification = async function () {
 
   const { error } = await supabase.auth.resend({
     type: "signup",
-    email: currentUser.email
+    email: currentUser.email,
+    options: {
+      emailRedirectTo: window.location.origin + "/pages/meu-perfil.html"
+    }
   });
 
   msgEl.style.color = error ? "#e88" : "var(--green)";
@@ -914,6 +944,12 @@ document.getElementById("form-register")?.addEventListener("submit", async (e) =
    ═══════════════════════════════════════════ */
 
 window.handleLogout = async function () {
+  // Destruir o chart antes do signOut para evitar referências a canvas destruído
+  if (ownChart) { ownChart.destroy(); ownChart = null; }
+  if (window._gridAbortController) {
+    window._gridAbortController.abort();
+    window._gridAbortController = null;
+  }
   await supabase.auth.signOut();
   currentUser   = null;
   matchedPlayer = null;
