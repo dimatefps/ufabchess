@@ -619,6 +619,49 @@ body {
   justify-content: center;
 }
 
+/* ── Admin sub-tabs (quadrimestral / aberto) ─── */
+.admin-subtabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.admin-subtab {
+  padding: 10px 22px;
+  font-family: inherit;
+  font-size: .84rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color .18s, border-color .18s;
+  white-space: nowrap;
+  width: auto;
+}
+.admin-subtab:hover { color: var(--text-secondary); }
+.admin-subtab.active { color: var(--green); border-bottom-color: var(--green); }
+
+.admin-subpanel { display: none; }
+.admin-subpanel.active { display: block; }
+
+.subpanel-desc {
+  font-size: .86rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+/* Botão amarelo para torneio aberto */
+.btn-yellow {
+  background: var(--yellow) !important;
+  color: #1a1208 !important;
+}
+.btn-yellow:hover { opacity: .88; }
+
 /* ── Session items (weeks list) ──────────────── */
 .session-item {
   background: var(--bg-card);

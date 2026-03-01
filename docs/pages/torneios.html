@@ -7,6 +7,103 @@
   <meta name="description" content="Torneios de xadrez do Clube UFABC. Resultados, classificações e torneio em andamento.">
   <link rel="icon" href="../assets/images/logoufabchess.ico" type="image/x-icon">
   <link rel="stylesheet" href="../styles/global.css">
+  <style>
+    /* ── Tabs de tipo de torneio ── */
+    .tournament-type-tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 32px;
+    }
+
+    .type-tab {
+      padding: 12px 28px;
+      font-family: var(--font-body);
+      font-size: .92rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      transition: color .18s, border-color .18s;
+      white-space: nowrap;
+    }
+
+    .type-tab:hover {
+      color: var(--text-secondary);
+    }
+
+    .type-tab.active {
+      color: var(--green);
+      border-bottom-color: var(--green);
+    }
+
+    .type-tab .tab-icon {
+      margin-right: 6px;
+      font-size: .88rem;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ── Dias do torneio (progresso quadrimestral) ── */
+    .dias-track {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .dia-pill {
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+    }
+
+    .dia-pill.done   { border-color: var(--green); color: var(--green); background: rgba(118,150,86,.08); }
+    .dia-pill.active { border-color: var(--yellow); color: var(--yellow); background: rgba(240,192,58,.08); }
+
+    /* ── Badge tipo ── */
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+    .type-badge.quadrimestral {
+      background: rgba(118,150,86,.12);
+      border: 1px solid rgba(118,150,86,.25);
+      color: var(--green);
+    }
+    .type-badge.diario {
+      background: rgba(240,192,58,.1);
+      border: 1px solid rgba(240,192,58,.2);
+      color: var(--yellow);
+    }
+
+    @media (max-width: 600px) {
+      .type-tab { padding: 10px 16px; font-size: .84rem; }
+    }
+  </style>
 </head>
 <body>
   <div id="site-header"></div>
@@ -15,25 +112,59 @@
     <div class="page-hero">
       <div class="container">
         <h1>Torneios</h1>
-        <p>Competições semanais com sistema suíço, árbitro oficial e rating atualizado em tempo real.</p>
+        <p>Competições com sistema suíço, árbitro oficial e rating atualizado em tempo real.</p>
       </div>
     </div>
 
     <section>
       <div class="container">
 
-        <div style="margin-bottom:40px;">
-          <p class="section-label">Em andamento</p>
-          <div id="ongoing-tournament"></div>
+        <!-- ── Tabs ───────────────────────────── -->
+        <div class="tournament-type-tabs">
+          <button class="type-tab active" data-tab="quadrimestral">
+            <span class="tab-icon">🏆</span>Quadrimestral
+          </button>
+          <button class="type-tab" data-tab="diario">
+            <span class="tab-icon">🎯</span>Torneio Aberto
+          </button>
         </div>
 
-        <div>
-          <p class="section-label">Edições anteriores</p>
-          <div id="tournaments-list"></div>
+        <!-- ══════════════════════════════════════
+             ABA: QUADRIMESTRAL
+        ══════════════════════════════════════ -->
+        <div class="tab-panel active" id="tab-quadrimestral">
+
+          <div style="margin-bottom:40px;">
+            <p class="section-label">Em andamento</p>
+            <div id="ongoing-quadrimestral"></div>
+          </div>
+
+          <div>
+            <p class="section-label">Edições anteriores</p>
+            <div id="finished-quadrimestral"></div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <a href="./como-funciona-torneio-semanal.html" class="btn-secondary">↗ Como o torneio funciona</a>
+          </div>
+
         </div>
 
-        <div style="margin-top:16px;">
-          <a href="./como-funciona-torneio-semanal.html" class="btn-secondary">↗ Como o torneio funciona</a>
+        <!-- ══════════════════════════════════════
+             ABA: TORNEIO ABERTO (SÁBADOS)
+        ══════════════════════════════════════ -->
+        <div class="tab-panel" id="tab-diario">
+
+          <div style="margin-bottom:40px;">
+            <p class="section-label">Em andamento hoje</p>
+            <div id="ongoing-diario"></div>
+          </div>
+
+          <div>
+            <p class="section-label">Edições anteriores</p>
+            <div id="finished-diario"></div>
+          </div>
+
         </div>
 
       </div>
