@@ -2,119 +2,121 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UFABCHESS • Admin</title>
-
   <link rel="stylesheet" href="./styles/admin.css">
 </head>
 <body>
 
-  <h1>Painel Administrativo</h1>
-<p id="referee-name"></p>
-<p>Registro oficial de resultados</p>
+  <!-- ── Header ────────────────────────────── -->
+  <div class="admin-header">
+    <div>
+      <span class="admin-logo">♟ UFABCHESS</span>
+      <span class="admin-badge">Painel Administrativo</span>
+    </div>
+    <div class="admin-header-right">
+      <span id="referee-name" class="referee-name"></span>
+      <button id="logout" class="btn-logout">Sair</button>
+    </div>
+  </div>
 
-  <form id="match-form">
+  <div class="admin-container">
 
-    <fieldset>
-      <legend>Partida</legend>
+    <!-- ══════════════════════════════════════
+         SEÇÃO 1 — REGISTRO DE RESULTADOS
+    ══════════════════════════════════════ -->
+    <section class="admin-section">
+      <h2 class="section-title">Registro de Resultados</h2>
 
-      <label>
-        Torneio
-        <select id="tournament-select" required>
-          <option value="">Selecione o torneio</option>
+      <!-- Seletor de sessão -->
+      <div class="session-selector" id="session-selector">
+        <label class="field-label">Torneio do Dia</label>
+        <select id="session-select" class="admin-select">
+          <option value="">Carregando...</option>
         </select>
-      </label>
+      </div>
 
-      <label>
-        Rodada
-        <input type="number" id="round-number" min="1" required>
-      </label>
+      <!-- Tabs de rodada -->
+      <div id="round-tabs" class="round-tabs" style="display:none;"></div>
 
-      <label>
-        Jogador de Brancas
-        <select id="player-white" required>
-          <option value="">Selecione o jogador</option>
-        </select>
-      </label>
+      <!-- Cards de partidas -->
+      <div id="match-cards" class="match-cards-grid"></div>
 
-      <label>
-        Jogador de Negras
-        <select id="player-black" required>
-          <option value="">Selecione o jogador</option>
-        </select>
-      </label>
+      <!-- Estado vazio -->
+      <div id="cards-empty" class="cards-empty" style="display:none;">
+        <p>Selecione um torneio do dia para ver as partidas.</p>
+      </div>
+    </section>
 
-      <label>
-        Resultado
-        <select id="match-result" required>
-          <option value="">Selecione o resultado</option>
-          <option value="1-0">Vitória das brancas</option>
-          <option value="0.5-0.5">Empate</option>
-          <option value="0-1">Vitória das negras</option>
-          <option value="wo-white">W.O. brancas</option>
-          <option value="wo-black">W.O. negras</option>
-        </select>
-      </label>
+    <!-- ══════════════════════════════════════
+         SEÇÃO 2 — PARTIDAS RECENTES
+    ══════════════════════════════════════ -->
+    <section class="admin-section">
+      <h2 class="section-title">Partidas Recentes</h2>
+      <ul id="matches-list" class="matches-list"></ul>
+    </section>
 
-      <button type="submit">
-        Registrar resultado
-      </button>
+    <!-- ══════════════════════════════════════
+         SEÇÃO 3 — GERENCIAR TORNEIOS DO DIA
+    ══════════════════════════════════════ -->
+    <section class="admin-section">
+      <h2 class="section-title">Gerenciar Torneios do Dia</h2>
 
-    </fieldset>
+      <fieldset class="admin-fieldset">
+        <legend>Novo Torneio do Dia</legend>
 
-  </form>
-  <a href="./admin-rollbacks.html" id="rollback-link">Ver histórico de rollbacks</a>
+        <div class="fields-row">
+          <label class="field-label">
+            Torneio (Edição)
+            <select id="week-tournament-select" class="admin-select" required>
+              <option value="">Selecione o torneio</option>
+            </select>
+          </label>
 
-  <h2>Partidas recentes</h2>
-<ul id="matches-list"></ul>
+          <label class="field-label">
+            Nº do Torneio
+            <input type="number" id="week-number" class="admin-input" min="1" placeholder="Ex: 1" required>
+          </label>
 
-  <!-- ═══════════════════════════════════════
-       NOVO: Gerenciamento de Semanas
-  ═══════════════════════════════════════ -->
+          <label class="field-label">
+            Data
+            <input type="date" id="week-date" class="admin-input" required>
+          </label>
 
-  <h2>Gerenciar Semanas</h2>
+          <label class="field-label">
+            Máx. Jogadores
+            <input type="number" id="week-max-players" class="admin-input" value="18" min="2" max="50">
+          </label>
+        </div>
 
-  <fieldset id="week-fieldset">
-    <legend>Nova Semana de Torneio</legend>
+        <button type="button" id="btn-create-week" class="btn-primary">
+          + Criar Torneio do Dia
+        </button>
+      </fieldset>
 
-    <label>
-      Torneio
-      <select id="week-tournament-select" required>
-        <option value="">Selecione o torneio</option>
-      </select>
-    </label>
+      <ul id="weeks-list" class="matches-list" style="margin-top:16px;"></ul>
+    </section>
 
-    <label>
-      Nº da Semana
-      <input type="number" id="week-number" min="1" required>
-    </label>
+    <div style="margin-top:8px;">
+      <a href="./admin-rollbacks.html" class="btn-link">↗ Histórico de rollbacks</a>
+    </div>
 
-    <label>
-      Data
-      <input type="date" id="week-date" required>
-    </label>
+  </div><!-- /admin-container -->
 
-    <label>
-      Máx. Jogadores
-      <input type="number" id="week-max-players" value="18" min="2" max="50">
-    </label>
-
-    <button type="button" id="btn-create-week">
-      Criar Semana
-    </button>
-  </fieldset>
-
-  <h2>Semanas Abertas</h2>
-  <ul id="weeks-list"></ul>
-
-  <!-- ═══════════════════════════════════════ -->
-
-  <button id="logout">Sair</button>
-
-  <div id="status-message"></div>
+  <!-- ── Modal de confirmação de resultado ── -->
+  <div id="result-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-title" id="modal-title">Confirmar resultado</div>
+      <div class="modal-matchup" id="modal-matchup"></div>
+      <div class="modal-result-badge" id="modal-result-badge"></div>
+      <div class="modal-actions">
+        <button id="modal-confirm" class="btn-primary">Confirmar</button>
+        <button id="modal-cancel" class="btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="./scripts/admin.js"></script>
   <script type="module" src="./scripts/admin-weeks.js"></script>
-
 </body>
-
 </html>
