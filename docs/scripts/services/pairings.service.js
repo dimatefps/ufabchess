@@ -4,8 +4,8 @@ import { supabase } from "./supabase.js";
    PAIRINGS SERVICE
 ══════════════════════════════════ */
 
-/** Buscar pareamentos de uma semana */
-export async function getPairings(weekId) {
+/** Buscar pareamentos de uma sessão */
+export async function getPairings(sessionId) {
   const { data, error } = await supabase
     .from("pairings")
     .select(`
@@ -19,7 +19,7 @@ export async function getPairings(weekId) {
         id, full_name, rating_rapid, games_played_rapid
       )
     `)
-    .eq("tournament_week_id", weekId)
+    .eq("tournament_session_id", sessionId)
     .order("round_number", { ascending: true })
     .order("table_number", { ascending: true });
 
@@ -28,9 +28,9 @@ export async function getPairings(weekId) {
 }
 
 /** Gerar pareamentos (admin) */
-export async function generatePairings(weekId) {
+export async function generatePairings(sessionId) {
   const { data, error } = await supabase.rpc("generate_pairings", {
-    p_tournament_week_id: weekId
+    p_tournament_session_id: sessionId
   });
 
   if (error) throw error;
