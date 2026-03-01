@@ -466,8 +466,10 @@ async function doRollback(matchId) {
 }
 
 /* ══════════════════════════════════════════════
-   PARTIDAS RECENTES
+   PARTIDAS RECENTES — mostra 3, expande para ver todas
    ══════════════════════════════════════════════ */
+const MATCHES_PREVIEW = 3;
+
 async function loadRecentMatches() {
   const { data, error } = await supabase
     .from("matches")
@@ -477,9 +479,10 @@ async function loadRecentMatches() {
       player_black:player_black ( full_name )
     `)
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(30);
 
   const list = document.getElementById("matches-list");
+
   if (error || !data?.length) {
     list.innerHTML = `<li class="match-item" style="color:var(--text-muted);justify-content:center;">
       Nenhuma partida registrada ainda.
@@ -487,30 +490,54 @@ async function loadRecentMatches() {
     return;
   }
 
-  list.innerHTML = data.map(m => {
-    const rw = Number(m.result_white);
-    const rb = Number(m.result_black);
-    let score, cls;
-    if (m.is_walkover) { score = "W.O."; cls = "score-wo"; }
-    else if (rw === 1) { score = "1 – 0"; cls = "score-white"; }
-    else if (rb === 1) { score = "0 – 1"; cls = "score-black"; }
-    else               { score = "½ – ½"; cls = "score-draw"; }
+  renderMatchList(list, data, false);
+}
 
-    const rollbackBtn = refereeRole === "admin"
-      ? `<button class="btn-undo" data-id="${m.id}">↩</button>`
-      : "";
+function buildMatchItem(m) {
+  const rw = Number(m.result_white);
+  const rb = Number(m.result_black);
+  let score, cls;
+  if (m.is_walkover) { score = "W.O."; cls = "score-wo"; }
+  else if (rw === 1) { score = "1 – 0"; cls = "score-white"; }
+  else if (rb === 1) { score = "0 – 1"; cls = "score-black"; }
+  else               { score = "½ – ½"; cls = "score-draw"; }
 
-    return `
-      <li class="match-item">
-        <span class="match-round">R${m.round_number}</span>
-        <span class="match-players">
-          ${m.player_white?.full_name ?? "?"} vs ${m.player_black?.full_name ?? "?"}
-        </span>
-        <span class="match-score ${cls}">${score}</span>
-        ${rollbackBtn}
-      </li>`;
-  }).join("");
+  const rollbackBtn = refereeRole === "admin"
+    ? `<button class="btn-undo" data-id="${m.id}">↩</button>`
+    : "";
 
+  return `
+    <li class="match-item">
+      <span class="match-round">R${m.round_number}</span>
+      <span class="match-players">
+        ${m.player_white?.full_name ?? "?"} vs ${m.player_black?.full_name ?? "?"}
+      </span>
+      <span class="match-score ${cls}">${score}</span>
+      ${rollbackBtn}
+    </li>`;
+}
+
+function renderMatchList(list, data, expanded) {
+  const visible = expanded ? data : data.slice(0, MATCHES_PREVIEW);
+  const hidden  = data.length - MATCHES_PREVIEW;
+
+  list.innerHTML = visible.map(buildMatchItem).join("");
+
+  // Botão expandir/recolher
+  if (data.length > MATCHES_PREVIEW) {
+    const toggleLi = document.createElement("li");
+    toggleLi.className = "match-toggle";
+    toggleLi.innerHTML = expanded
+      ? `<button class="btn-toggle-matches">▲ Recolher</button>`
+      : `<button class="btn-toggle-matches">▼ Ver mais ${hidden} partida${hidden > 1 ? "s" : ""}</button>`;
+    list.appendChild(toggleLi);
+
+    toggleLi.querySelector(".btn-toggle-matches").addEventListener("click", () => {
+      renderMatchList(list, data, !expanded);
+    });
+  }
+
+  // Listeners rollback
   list.querySelectorAll(".btn-undo").forEach(btn => {
     btn.addEventListener("click", async () => {
       await doRollback(btn.dataset.id);

@@ -619,6 +619,157 @@ body {
   justify-content: center;
 }
 
+/* ── Session items (weeks list) ──────────────── */
+.session-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.session-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.session-num {
+  font-weight: 700;
+  font-size: .9rem;
+  color: var(--text-primary);
+}
+
+.session-tournament {
+  font-size: .84rem;
+  color: var(--text-secondary);
+}
+
+.session-status {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+.status-open {
+  background: rgba(118,150,86,.15);
+  color: var(--green);
+  border: 1px solid rgba(118,150,86,.3);
+}
+.status-progress {
+  background: rgba(240,192,58,.1);
+  color: var(--yellow);
+  border: 1px solid rgba(240,192,58,.25);
+}
+
+.session-meta {
+  font-size: .78rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.spots-count {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.spots-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  max-width: 160px;
+}
+
+.spots-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 2px;
+  transition: width .4s ease;
+}
+
+.session-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-session-pair {
+  background: var(--yellow);
+  color: #1a1208;
+  border: none;
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity .18s;
+  white-space: nowrap;
+  width: auto;
+}
+.btn-session-pair:hover    { opacity: .85; }
+.btn-session-pair:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-session-close {
+  background: transparent;
+  border: 1px solid rgba(239,68,68,.35);
+  color: #f87171;
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background .18s;
+  white-space: nowrap;
+  width: auto;
+}
+.btn-session-close:hover { background: rgba(239,68,68,.1); }
+
+/* ── Match toggle (ver mais/menos) ───────────── */
+.match-toggle {
+  list-style: none;
+  text-align: center;
+  padding: 4px 0;
+}
+
+.btn-toggle-matches {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all .18s;
+  width: auto;
+}
+.btn-toggle-matches:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
 /* ── Define botões para usar como block nos cards ── */
 #btn-create-week {
   margin-top: 4px;
