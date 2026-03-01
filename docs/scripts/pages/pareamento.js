@@ -4,7 +4,7 @@ import { getUser } from "../services/auth.service.js";
 import { supabase } from "../services/supabase.js";
 
 /* ══════════════════════════════════
-   PAREAMENTO PAGE — múltiplas semanas
+   PAREAMENTO PAGE — múltiplas sessões
 ══════════════════════════════════ */
 
 function getTitleBadge(rating, gamesPlayed) {
@@ -34,40 +34,37 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   try {
-    const weeks = await getOpenWeeks();
+    const sessions = await getOpenWeeks();
 
-    if (!weeks.length) {
+    if (!sessions.length) {
       weekInfo.innerHTML = "";
       tabsContainer.style.display = "none";
       content.innerHTML = `<div class="no-pairings">Nenhum torneio em andamento com pareamento disponível.</div>`;
       return;
     }
 
-    // ── Se houver mais de uma semana, mostrar seletor de semanas ──
-    if (weeks.length > 1) {
+    // Seletor de sessões (se houver mais de uma)
+    if (sessions.length > 1) {
       weekInfo.innerHTML = `
-        <div class="round-tabs" id="week-tabs" style="margin-bottom:8px;">
-          ${weeks.map((w, i) => {
-            const tn = w.tournaments?.name || "Torneio";
-            return `<button class="round-tab ${i === 0 ? "active" : ""}" data-week-idx="${i}">
-              ${tn} · Sem. ${w.week_number}
+        <div class="round-tabs" id="session-tabs" style="margin-bottom:8px;">
+          ${sessions.map((s, i) => {
+            const tn = s.tournaments?.name || "Torneio";
+            return `<button class="round-tab ${i === 0 ? "active" : ""}" data-session-idx="${i}">
+              ${tn} · Torneio ${s.session_number}
             </button>`;
           }).join("")}
         </div>`;
 
-      // Listener para trocar de semana
-      weekInfo.querySelectorAll("[data-week-idx]").forEach(btn => {
+      weekInfo.querySelectorAll("[data-session-idx]").forEach(btn => {
         btn.addEventListener("click", () => {
-          weekInfo.querySelectorAll("[data-week-idx]").forEach(b => b.classList.remove("active"));
+          weekInfo.querySelectorAll("[data-session-idx]").forEach(b => b.classList.remove("active"));
           btn.classList.add("active");
-          const idx = Number(btn.dataset.weekIdx);
-          loadWeek(weeks[idx], tabsContainer, content);
+          loadSession(sessions[Number(btn.dataset.sessionIdx)], tabsContainer, content);
         });
       });
     }
 
-    // Carregar primeira semana por padrão
-    await loadWeek(weeks[0], tabsContainer, content);
+    await loadSession(sessions[0], tabsContainer, content);
 
   } catch (err) {
     console.error(err);
@@ -75,24 +72,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-/* ── Carregar pareamentos de uma semana específica ── */
-async function loadWeek(week, tabsContainer, content) {
-  const tournamentName = week.tournaments?.name || "Torneio";
-  const edition        = week.tournaments?.edition ? ` • Edição ${week.tournaments.edition}` : "";
-  const dateStr        = formatDate(week.match_date);
+/* ── Carregar pareamentos de uma sessão ── */
+async function loadSession(session, tabsContainer, content) {
+  const tournamentName = session.tournaments?.name || "Torneio";
+  const edition        = session.tournaments?.edition ? ` • Edição ${session.tournaments.edition}` : "";
+  const dateStr        = formatDate(session.match_date);
 
-  // Atualizar info da semana (só se não houver seletor de múltiplas semanas)
   const weekInfoEl = document.getElementById("pairing-week-info");
-  const hasTabs    = weekInfoEl.querySelector("#week-tabs");
+  const hasTabs    = weekInfoEl.querySelector("#session-tabs");
 
   if (!hasTabs) {
     weekInfoEl.innerHTML = `
       <div class="card" style="padding:16px 20px;">
         <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);">
-          Semana ${week.week_number}
+          Torneio ${session.session_number}
         </span>
         <h3 style="font-size:1rem;margin-top:4px;">${tournamentName}${edition}</h3>
-        <p style="font-size:.84rem;color:var(--text-secondary);margin-top:2px;">📅 ${dateStr} às ${week.match_time?.slice(0, 5) || "18:15"}</p>
+        <p style="font-size:.84rem;color:var(--text-secondary);margin-top:2px;">📅 ${dateStr} às ${session.match_time?.slice(0, 5) || "18:15"}</p>
       </div>`;
   }
 
@@ -100,12 +96,12 @@ async function loadWeek(week, tabsContainer, content) {
   tabsContainer.innerHTML     = "";
   content.innerHTML           = `<div class="no-pairings">Carregando...</div>`;
 
-  const pairings = await getPairings(week.id);
+  const pairings = await getPairings(session.id);
 
   if (!pairings || pairings.length === 0) {
     content.innerHTML = `
       <div class="no-pairings">
-        <p>Pareamento ainda não foi gerado para esta semana.</p>
+        <p>Pareamento ainda não foi gerado para este torneio.</p>
         <p style="font-size:.82rem;color:var(--text-muted);margin-top:8px;">O pareamento é publicado antes do início do torneio.</p>
       </div>`;
     return;
@@ -120,7 +116,6 @@ async function loadWeek(week, tabsContainer, content) {
 
   const roundNumbers = Object.keys(rounds).sort((a, b) => a - b);
 
-  // Tabs de rodada
   tabsContainer.style.display = "flex";
   tabsContainer.innerHTML = roundNumbers.map((r, i) => `
     <button class="round-tab ${i === 0 ? "active" : ""}" data-round="${r}">
