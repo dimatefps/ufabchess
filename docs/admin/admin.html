@@ -24,27 +24,25 @@
 
     <!-- ══════════════════════════════════════
          SEÇÃO 1 — REGISTRO DE RESULTADOS
+         O árbitro seleciona o dia ativo e
+         registra os resultados pelos cards
     ══════════════════════════════════════ -->
     <section class="admin-section">
       <h2 class="section-title">Registro de Resultados</h2>
 
-      <!-- Seletor de sessão -->
-      <div class="session-selector" id="session-selector">
-        <label class="field-label">Torneio do Dia</label>
-        <select id="session-select" class="admin-select">
-          <option value="">Carregando...</option>
-        </select>
+      <div class="session-selector">
+        <label class="field-label">
+          Selecione o dia ativo
+          <select id="session-select" class="admin-select">
+            <option value="">Carregando...</option>
+          </select>
+        </label>
       </div>
 
-      <!-- Tabs de rodada -->
       <div id="round-tabs" class="round-tabs" style="display:none;"></div>
-
-      <!-- Cards de partidas -->
       <div id="match-cards" class="match-cards-grid"></div>
-
-      <!-- Estado vazio -->
       <div id="cards-empty" class="cards-empty" style="display:none;">
-        <p>Selecione um torneio do dia para ver as partidas.</p>
+        <p>Selecione um dia ativo para ver as partidas.</p>
       </div>
     </section>
 
@@ -57,53 +55,100 @@
     </section>
 
     <!-- ══════════════════════════════════════
-         SEÇÃO 3 — GERENCIAR TORNEIOS DO DIA
+         SEÇÃO 3 — GERENCIAR TORNEIOS
+         Separado em duas subseções:
+         A) Novo dia (quadrimestral)
+         B) Novo torneio aberto (diário)
     ══════════════════════════════════════ -->
     <section class="admin-section">
-      <h2 class="section-title">Gerenciar Torneios do Dia</h2>
+      <h2 class="section-title">Gerenciar Torneios</h2>
 
-      <fieldset class="admin-fieldset">
-        <legend>Novo Torneio do Dia</legend>
+      <!-- Sub-tabs -->
+      <div class="admin-subtabs">
+        <button class="admin-subtab active" data-subtab="quadrimestral">🏆 Quadrimestral</button>
+        <button class="admin-subtab" data-subtab="diario">🎯 Torneio Aberto</button>
+      </div>
 
-        <div class="fields-row">
-          <label class="field-label">
-            Torneio (Edição)
-            <select id="week-tournament-select" class="admin-select" required>
-              <option value="">Selecione o torneio</option>
-            </select>
-          </label>
+      <!-- ── Quadrimestral: criar novo Dia ── -->
+      <div class="admin-subpanel active" id="subpanel-quadrimestral">
+        <p class="subpanel-desc">
+          Adiciona um <strong>novo dia</strong> a um torneio quadrimestral em andamento.<br>
+          <span style="color:var(--text-muted);font-size:.82rem;">Ex: Dia 3 do Torneio UFABC 2025.1</span>
+        </p>
 
-          <label class="field-label">
-            Nº do Torneio
-            <input type="number" id="week-number" class="admin-input" min="1" placeholder="Ex: 1" required>
-          </label>
+        <fieldset class="admin-fieldset">
+          <legend>Novo Dia do Torneio</legend>
+          <div class="fields-row">
+            <label class="field-label">
+              Torneio Quadrimestral
+              <select id="week-tournament-select" class="admin-select" required>
+                <option value="">Selecione</option>
+              </select>
+            </label>
+            <label class="field-label">
+              Nº do Dia
+              <input type="number" id="week-number" class="admin-input" min="1" placeholder="Ex: 3" required>
+            </label>
+            <label class="field-label">
+              Data
+              <input type="date" id="week-date" class="admin-input" required>
+            </label>
+            <label class="field-label">
+              Máx. Jogadores
+              <input type="number" id="week-max-players" class="admin-input" value="18" min="2" max="50">
+            </label>
+          </div>
+          <button type="button" id="btn-create-week" class="btn-primary">
+            + Criar Dia
+          </button>
+        </fieldset>
+      </div>
 
-          <label class="field-label">
-            Data
-            <input type="date" id="week-date" class="admin-input" required>
-          </label>
+      <!-- ── Torneio Aberto: criar torneio autônomo ── -->
+      <div class="admin-subpanel" id="subpanel-diario">
+        <p class="subpanel-desc">
+          Cria um <strong>torneio aberto</strong> independente (sábados, público geral).<br>
+          <span style="color:var(--text-muted);font-size:.82rem;">Tem check-in, pareamento e resultados próprios.</span>
+        </p>
 
-          <label class="field-label">
-            Máx. Jogadores
-            <input type="number" id="week-max-players" class="admin-input" value="18" min="2" max="50">
-          </label>
-        </div>
+        <fieldset class="admin-fieldset">
+          <legend>Novo Torneio Aberto</legend>
+          <div class="fields-row">
+            <label class="field-label">
+              Torneio Aberto (Edição)
+              <select id="diario-tournament-select" class="admin-select" required>
+                <option value="">Selecione</option>
+              </select>
+            </label>
+            <label class="field-label">
+              Data
+              <input type="date" id="diario-date" class="admin-input" required>
+            </label>
+            <label class="field-label">
+              Máx. Jogadores
+              <input type="number" id="diario-max-players" class="admin-input" value="24" min="2" max="80">
+            </label>
+          </div>
+          <button type="button" id="btn-create-diario" class="btn-primary btn-yellow">
+            + Criar Torneio Aberto
+          </button>
+        </fieldset>
+      </div>
 
-        <button type="button" id="btn-create-week" class="btn-primary">
-          + Criar Torneio do Dia
-        </button>
-      </fieldset>
-
-      <ul id="weeks-list" class="matches-list" style="margin-top:16px;"></ul>
+      <!-- Lista de sessões ativas (ambos os tipos) -->
+      <div style="margin-top:24px;">
+        <p class="field-label" style="margin-bottom:10px;">Dias e torneios abertos ativos</p>
+        <ul id="weeks-list" class="matches-list"></ul>
+      </div>
     </section>
 
     <div style="margin-top:8px;">
       <a href="./admin-rollbacks.html" class="btn-link">↗ Histórico de rollbacks</a>
     </div>
 
-  </div><!-- /admin-container -->
+  </div>
 
-  <!-- ── Modal de confirmação de resultado ── -->
+  <!-- ── Modal de confirmação ── -->
   <div id="result-modal" class="modal-overlay" style="display:none;">
     <div class="modal-box">
       <div class="modal-title" id="modal-title">Confirmar resultado</div>

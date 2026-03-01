@@ -1,8 +1,12 @@
 import {
-  getFinishedTournaments,
+  getOngoingQuadrimestral,
+  getFinishedQuadrimestrais,
+  getOngoingStandings,
+  getSessionsByTournament,
   getStandingsByTournament,
-  getOngoingTournament,
-  getOngoingStandings
+  getOngoingDiario,
+  getFinishedDiarios,
+  getDiarioStandings,
 } from "../services/tournaments.service.js";
 
 /* ══════════════════════════════════════
@@ -11,7 +15,7 @@ import {
 function getTitleBadge(rating, gamesPlayed) {
   if (!gamesPlayed || gamesPlayed < 10) return "";
   if (rating >= 2000) return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
-  if (rating >= 1800) return `<span class="title-badge mf"  title="Mestre Federal">MF</span>`;
+  if (rating >= 1800) return `<span class="title-badge mf" title="Mestre Federal">MF</span>`;
   if (rating >= 1600) return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
   return "";
 }
@@ -27,42 +31,79 @@ function playerLink(player) {
 }
 
 /* ══════════════════════════════════════
-   INIT
+   TABS
    ══════════════════════════════════════ */
 document.addEventListener("DOMContentLoaded", async () => {
-  const ongoingContainer  = document.getElementById("ongoing-tournament");
-  const finishedContainer = document.getElementById("tournaments-list");
+  // Tab switching
+  document.querySelectorAll(".type-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".type-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(`tab-${tab.dataset.tab}`).classList.add("active");
+    });
+  });
 
+  // Carregar ambas as abas em paralelo
   try {
-    if (ongoingContainer)  await loadOngoingTournament(ongoingContainer);
-    if (finishedContainer) await loadFinishedTournaments(finishedContainer);
+    await Promise.all([
+      loadQuadrimestral(),
+      loadDiario(),
+    ]);
   } catch (err) {
     console.error("Erro geral:", err);
   }
 });
 
 /* ══════════════════════════════════════
-   TORNEIO EM ANDAMENTO
-   Mostra top 5 + botão "Ver todos"
+   ABA QUADRIMESTRAL
    ══════════════════════════════════════ */
-async function loadOngoingTournament(container) {
-  const tournament = await getOngoingTournament();
+async function loadQuadrimestral() {
+  const ongoingEl  = document.getElementById("ongoing-quadrimestral");
+  const finishedEl = document.getElementById("finished-quadrimestral");
+
+  // Em andamento
+  const tournament = await getOngoingQuadrimestral();
 
   if (!tournament) {
-    container.innerHTML = `
+    ongoingEl.innerHTML = `
       <div class="tournament" style="text-align:center;padding:40px 28px;">
-        <p style="color:var(--text-muted);font-size:.95rem;">Nenhum torneio em andamento no momento.</p>
+        <p style="color:var(--text-muted);font-size:.95rem;">Nenhum torneio quadrimestral em andamento.</p>
       </div>`;
-    return;
+  } else {
+    await renderOngoingQuadrimestral(ongoingEl, tournament);
   }
+
+  // Finalizados
+  const finished = await getFinishedQuadrimestrais();
+  if (!finished?.length) {
+    finishedEl.innerHTML = `
+      <div class="tournament" style="text-align:center;padding:32px 28px;">
+        <p style="color:var(--text-muted);">Nenhuma edição finalizada ainda.</p>
+      </div>`;
+  } else {
+    await renderFinishedList(finishedEl, finished, "quadrimestral");
+  }
+}
+
+async function renderOngoingQuadrimestral(container, tournament) {
+  // Buscar dias (sessões) para mostrar progresso
+  const sessions = await getSessionsByTournament(tournament.id);
+  const diasHtml = sessions.map(s => {
+    const cls = s.status === "finished" ? "done"
+              : s.status === "in_progress" ? "active" : "";
+    return `<span class="dia-pill ${cls}">Dia ${s.session_number}</span>`;
+  }).join("");
 
   container.innerHTML = `
     <div class="tournament tournament-ongoing">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
         <div>
-          <div class="live-badge">Em Andamento</div>
+          <div class="type-badge quadrimestral">🏆 Quadrimestral</div>
+          <div class="live-badge" style="margin-top:6px;">Em Andamento</div>
           <h3 style="margin-top:8px;margin-bottom:0;">${tournament.name}</h3>
           ${tournament.edition ? `<p style="margin-bottom:0;">Edição ${tournament.edition}</p>` : ""}
+          ${sessions.length ? `<div class="dias-track" style="margin-top:10px;">${diasHtml}</div>` : ""}
         </div>
         <a href="./meu-perfil.html"
           style="display:inline-flex;align-items:center;gap:7px;
@@ -72,7 +113,7 @@ async function loadOngoingTournament(container) {
                  white-space:nowrap;transition:opacity .18s ease;"
           onmouseover="this.style.opacity='.85'"
           onmouseout="this.style.opacity='1'"
-        >♟️ Participar do torneio</a>
+        >♟️ Participar</a>
       </div>
       <div class="standings">
         <div style="color:var(--text-muted);font-size:.88rem;padding:12px 0;">Carregando classificação...</div>
@@ -80,18 +121,13 @@ async function loadOngoingTournament(container) {
     </div>`;
 
   const standingsEl = container.querySelector(".standings");
-  let lastStandings = null;
 
   async function loadStandings() {
     try {
       const standings = await getOngoingStandings(tournament.id);
-      lastStandings = standings;
-
-      // Preservar estado expandido durante o auto-refresh
       const isExpanded = standingsEl.querySelector(".btn-ver-menos") !== null;
       standingsEl.innerHTML = renderStandingsTable(standings, "ongoing", !isExpanded);
       if (!isExpanded) setupVerMais(standingsEl, standings, "ongoing");
-
     } catch (err) {
       console.error(err);
       standingsEl.innerHTML = `<p style="color:var(--text-muted);">Erro ao carregar classificação.</p>`;
@@ -103,38 +139,106 @@ async function loadOngoingTournament(container) {
 }
 
 /* ══════════════════════════════════════
-   TORNEIOS FINALIZADOS
-   Fechados por padrão — clique para abrir
+   ABA TORNEIO ABERTO (DIÁRIO)
    ══════════════════════════════════════ */
-async function loadFinishedTournaments(container) {
-  const tournaments = await getFinishedTournaments();
+async function loadDiario() {
+  const ongoingEl  = document.getElementById("ongoing-diario");
+  const finishedEl = document.getElementById("finished-diario");
 
-  if (!tournaments.length) {
-    container.innerHTML = `
+  // Em andamento
+  const tournament = await getOngoingDiario();
+
+  if (!tournament) {
+    ongoingEl.innerHTML = `
       <div class="tournament" style="text-align:center;padding:40px 28px;">
-        <p style="color:var(--text-muted);">Nenhum torneio finalizado ainda.</p>
+        <p style="color:var(--text-muted);font-size:.95rem;">Nenhum torneio aberto em andamento hoje.</p>
       </div>`;
-    return;
+  } else {
+    await renderOngoingDiario(ongoingEl, tournament);
   }
 
-  for (const tournament of tournaments) {
+  // Histórico
+  const finished = await getFinishedDiarios();
+  if (!finished?.length) {
+    finishedEl.innerHTML = `
+      <div class="tournament" style="text-align:center;padding:32px 28px;">
+        <p style="color:var(--text-muted);">Nenhum torneio aberto finalizado ainda.</p>
+      </div>`;
+  } else {
+    await renderFinishedList(finishedEl, finished, "diario");
+  }
+}
+
+async function renderOngoingDiario(container, tournament) {
+  container.innerHTML = `
+    <div class="tournament tournament-ongoing" style="border-color:var(--yellow);">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+        <div>
+          <div class="type-badge diario">🎯 Torneio Aberto</div>
+          <div class="live-badge" style="margin-top:6px;">Em Andamento</div>
+          <h3 style="margin-top:8px;margin-bottom:0;">${tournament.name}</h3>
+          ${tournament.edition ? `<p style="margin-bottom:0;">Edição ${tournament.edition}</p>` : ""}
+        </div>
+        <a href="./meu-perfil.html"
+          style="display:inline-flex;align-items:center;gap:7px;
+                 background:var(--yellow);color:#1a1208;font-family:var(--font-body);
+                 font-size:.82rem;font-weight:700;padding:9px 18px;
+                 border-radius:var(--radius-sm);text-decoration:none;
+                 white-space:nowrap;transition:opacity .18s ease;"
+          onmouseover="this.style.opacity='.85'"
+          onmouseout="this.style.opacity='1'"
+        >♟️ Participar</a>
+      </div>
+      <div class="standings">
+        <div style="color:var(--text-muted);font-size:.88rem;padding:12px 0;">Carregando classificação...</div>
+      </div>
+    </div>`;
+
+  const standingsEl = container.querySelector(".standings");
+
+  async function loadStandings() {
+    try {
+      const standings = await getDiarioStandings(tournament.id);
+      const isExpanded = standingsEl.querySelector(".btn-ver-menos") !== null;
+      standingsEl.innerHTML = renderStandingsTable(standings, "ongoing", !isExpanded);
+      if (!isExpanded) setupVerMais(standingsEl, standings, "ongoing");
+    } catch (err) {
+      console.error(err);
+      standingsEl.innerHTML = `<p style="color:var(--text-muted);">Erro ao carregar.</p>`;
+    }
+  }
+
+  await loadStandings();
+  setInterval(loadStandings, 15000);
+}
+
+/* ══════════════════════════════════════
+   LISTA DE FINALIZADOS (ACCORDION)
+   Funciona para quadrimestral e diário
+   ══════════════════════════════════════ */
+async function renderFinishedList(container, tournaments, type) {
+  container.innerHTML = "";
+
+  for (const t of tournaments) {
     const section = document.createElement("div");
     section.className = "tournament";
 
+    const badge = type === "diario"
+      ? `<span class="type-badge diario" style="margin-bottom:6px;">🎯 Torneio Aberto</span>`
+      : "";
+
     section.innerHTML = `
       <div class="tournament-accordion-header"
-        style="display:flex;align-items:center;justify-content:space-between;
-               gap:12px;cursor:pointer;user-select:none;">
+        style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;user-select:none;">
         <div>
-          <h3 style="margin-bottom:2px;">${tournament.name}</h3>
-          ${tournament.edition
-            ? `<p style="margin-bottom:0;color:var(--text-muted);font-size:.85rem;">Edição ${tournament.edition}</p>`
+          ${badge}
+          <h3 style="margin-bottom:2px;">${t.name}</h3>
+          ${t.edition
+            ? `<p style="margin-bottom:0;color:var(--text-muted);font-size:.85rem;">Edição ${t.edition}</p>`
             : ""}
         </div>
         <span class="accordion-arrow"
-          style="font-size:1rem;color:var(--text-muted);transition:transform .25s ease;flex-shrink:0;">
-          ▼
-        </span>
+          style="font-size:1rem;color:var(--text-muted);transition:transform .25s ease;flex-shrink:0;">▼</span>
       </div>
       <div class="accordion-body" style="display:none;margin-top:14px;">
         <div style="color:var(--text-muted);font-size:.88rem;padding:8px 0;">Carregando...</div>
@@ -149,20 +253,17 @@ async function loadFinishedTournaments(container) {
 
     header.addEventListener("click", async () => {
       const isOpen = body.style.display !== "none";
-
       if (isOpen) {
         body.style.display    = "none";
         arrow.style.transform = "rotate(0deg)";
       } else {
         body.style.display    = "block";
         arrow.style.transform = "rotate(180deg)";
-
         if (!loaded) {
           loaded = true;
           try {
-            const standings = await getStandingsByTournament(tournament.id);
-            // Finalizados mostram todos de uma vez
-            body.innerHTML = renderStandingsTable(standings, "finished", false);
+            const standings = await getStandingsByTournament(t.id);
+            body.innerHTML  = renderStandingsTable(standings, "finished", false);
           } catch (err) {
             body.innerHTML = `<p style="color:var(--text-muted);">Erro ao carregar.</p>`;
           }
@@ -174,25 +275,22 @@ async function loadFinishedTournaments(container) {
 
 /* ══════════════════════════════════════
    TABELA DE CLASSIFICAÇÃO
-   collapsed=true → mostra só top 5
    ══════════════════════════════════════ */
 const PREVIEW_COUNT = 5;
 
 function renderStandingsTable(standings, type, collapsed) {
-  if (!standings || standings.length === 0) {
+  if (!standings?.length) {
     return `<p style="color:var(--text-muted);font-size:.88rem;margin-top:8px;">Sem dados de classificação.</p>`;
   }
 
   const showAll = !collapsed || standings.length <= PREVIEW_COUNT;
   const visible = showAll ? standings : standings.slice(0, PREVIEW_COUNT);
-
-  const rows = visible.map((s, index) => buildRow(s, index, type)).join("");
+  const rows    = visible.map((s, i) => buildRow(s, i, type)).join("");
 
   const hiddenCount = standings.length - PREVIEW_COUNT;
   const moreRow = (!showAll && hiddenCount > 0) ? `
     <tr>
-      <td colspan="5" style="text-align:center;padding:10px;
-          color:var(--text-muted);font-size:.82rem;font-style:italic;">
+      <td colspan="5" style="text-align:center;padding:10px;color:var(--text-muted);font-size:.82rem;font-style:italic;">
         e mais ${hiddenCount} jogador${hiddenCount > 1 ? "es" : ""}…
       </td>
     </tr>` : "";
@@ -201,9 +299,7 @@ function renderStandingsTable(standings, type, collapsed) {
     <div class="table-responsive">
       <table class="standings-table">
         <thead>
-          <tr>
-            <th>Pos</th><th>Jogador</th><th>Pontos</th><th>Partidas</th><th>Rating</th>
-          </tr>
+          <tr><th>Pos</th><th>Jogador</th><th>Pontos</th><th>Partidas</th><th>Rating</th></tr>
         </thead>
         <tbody class="standings-tbody">${rows}${moreRow}</tbody>
       </table>
@@ -213,8 +309,7 @@ function renderStandingsTable(standings, type, collapsed) {
         <button class="btn-ver-mais btn-secondary" style="font-size:.85rem;padding:8px 22px;">
           Ver todos os ${standings.length} jogadores ▾
         </button>
-      </div>` : ""}
-    ${showAll && collapsed === false && standings.length > PREVIEW_COUNT ? "" : ""}`;
+      </div>` : ""}`;
 }
 
 function buildRow(s, index, type) {
@@ -223,7 +318,7 @@ function buildRow(s, index, type) {
 
   if (type === "ongoing") {
     const tc = s.tournaments?.time_control;
-    if (tc === "rapid")         rating = s.players?.rating_rapid;
+    if (tc === "rapid")    rating = s.players?.rating_rapid;
     else if (tc === "blitz")    rating = s.players?.rating_blitz;
     else if (tc === "standard") rating = s.players?.rating_standard;
   } else {
@@ -239,14 +334,12 @@ function buildRow(s, index, type) {
       <td>${badge}${playerLink(s.players)}</td>
       <td>${s.points ?? 0}</td>
       <td>${s.games_played ?? 0}</td>
-      <td style="font-family:'Courier New',monospace;font-weight:700;color:var(--green);">
-        ${rating ?? "-"}
-      </td>
+      <td style="font-family:'Courier New',monospace;font-weight:700;color:var(--green);">${rating ?? "-"}</td>
     </tr>`;
 }
 
 /* ══════════════════════════════════════
-   SETUP BOTÃO VER MAIS / VER MENOS
+   VER MAIS / VER MENOS
    ══════════════════════════════════════ */
 function setupVerMais(container, standings, type) {
   const btn = container.querySelector(".btn-ver-mais");
@@ -255,17 +348,11 @@ function setupVerMais(container, standings, type) {
   btn.addEventListener("click", () => {
     const tbody = container.querySelector(".standings-tbody");
     if (!tbody) return;
-
-    // Expandir — mostrar todos
     tbody.innerHTML = standings.map((s, i) => buildRow(s, i, type)).join("");
-
-    // Trocar por "Ver menos"
-    btn.textContent  = "Ver menos ▴";
-    btn.className    = "btn-ver-menos btn-secondary";
+    btn.textContent = "Ver menos ▴";
+    btn.className   = "btn-ver-menos btn-secondary";
     btn.style.cssText = "font-size:.85rem;padding:8px 22px;";
-
     btn.onclick = () => {
-      // Voltar ao estado colapsado
       container.innerHTML = renderStandingsTable(standings, type, true);
       setupVerMais(container, standings, type);
     };
