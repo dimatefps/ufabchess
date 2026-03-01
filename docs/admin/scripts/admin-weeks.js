@@ -1,65 +1,16 @@
 /* ══════════════════════════════════════════════════════
    ADMIN — Gerenciamento de Semanas de Torneio
-   
-   Adicione este script ao admin.html:
-   <script type="module" src="./scripts/admin-weeks.js"></script>
-   
-   E adicione o HTML abaixo no admin.html, antes do 
-   botão de logout:
 ══════════════════════════════════════════════════════ */
-
-/*
-   HTML A ADICIONAR NO admin.html:
-   ================================
-
-<h2>Gerenciar Semanas</h2>
-
-<fieldset id="week-fieldset">
-  <legend>Nova Semana de Torneio</legend>
-  
-  <label>
-    Torneio
-    <select id="week-tournament-select" required>
-      <option value="">Selecione o torneio</option>
-    </select>
-  </label>
-  
-  <label>
-    Nº da Semana
-    <input type="number" id="week-number" min="1" required>
-  </label>
-  
-  <label>
-    Data
-    <input type="date" id="week-date" required>
-  </label>
-  
-  <label>
-    Máx. Jogadores
-    <input type="number" id="week-max-players" value="18" min="2" max="50">
-  </label>
-  
-  <button type="button" id="btn-create-week">
-    Criar Semana
-  </button>
-</fieldset>
-
-<h2>Semanas Abertas</h2>
-<ul id="weeks-list"></ul>
-
-*/
 
 import { supabase } from "../../scripts/services/supabase.js";
 
-// Wait for DOM
 document.addEventListener("DOMContentLoaded", async () => {
-  // Check if admin elements exist
   const weekTournamentSelect = document.getElementById("week-tournament-select");
-  const weeksList = document.getElementById("weeks-list");
-  
+  const weeksList            = document.getElementById("weeks-list");
+
   if (!weekTournamentSelect || !weeksList) return;
 
-  // Load tournaments into week select
+  // Carregar torneios em andamento no select
   const { data: tournaments } = await supabase
     .from("tournaments")
     .select("id, name, edition")
@@ -68,19 +19,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (tournaments) {
     tournaments.forEach(t => {
-      const option = document.createElement("option");
-      option.value = t.id;
+      const option       = document.createElement("option");
+      option.value       = t.id;
       option.textContent = t.edition ? `${t.name} • Edição ${t.edition}` : t.name;
       weekTournamentSelect.appendChild(option);
     });
   }
 
-  // Create week button
+  // ── Criar nova semana ───────────────────────────────────────
   document.getElementById("btn-create-week")?.addEventListener("click", async () => {
     const tournamentId = weekTournamentSelect.value;
-    const weekNumber = Number(document.getElementById("week-number").value);
-    const matchDate = document.getElementById("week-date").value;
-    const maxPlayers = Number(document.getElementById("week-max-players").value) || 18;
+    const weekNumber   = Number(document.getElementById("week-number").value);
+    const matchDate    = document.getElementById("week-date").value;
+    const maxPlayers   = Number(document.getElementById("week-max-players").value) || 18;
 
     if (!tournamentId || !weekNumber || !matchDate) {
       alert("Preencha todos os campos");
@@ -89,39 +40,29 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const { data, error } = await supabase.rpc("create_tournament_week", {
       p_tournament_id: tournamentId,
-      p_week_number: weekNumber,
-      p_match_date: matchDate,
-      p_max_players: maxPlayers
+      p_week_number:   weekNumber,
+      p_match_date:    matchDate,
+      p_max_players:   maxPlayers
     });
 
-    if (error) {
-      alert(error.message || "Erro ao criar semana");
-      return;
-    }
+    if (error) { alert(error.message || "Erro ao criar semana"); return; }
 
     alert("Semana criada com sucesso!");
     loadWeeks();
   });
 
-  // Load existing weeks
+  // ── Listar semanas abertas ──────────────────────────────────
   async function loadWeeks() {
     const { data: weeks, error } = await supabase
       .from("tournament_weeks")
       .select(`
-        id,
-        week_number,
-        match_date,
-        max_players,
-        status,
+        id, week_number, match_date, max_players, status,
         tournaments (name, edition)
       `)
       .in("status", ["open", "in_progress"])
       .order("match_date", { ascending: false });
 
-    if (error) {
-      console.error(error);
-      return;
-    }
+    if (error) { console.error(error); return; }
 
     weeksList.innerHTML = "";
 
@@ -131,7 +72,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     for (const week of weeks) {
-      // Count checkins
       const { count } = await supabase
         .from("tournament_checkins")
         .select("id", { count: "exact", head: true })
@@ -140,43 +80,78 @@ document.addEventListener("DOMContentLoaded", async () => {
       const li = document.createElement("li");
       li.innerHTML = `
         <span>
-          Semana ${week.week_number} — ${week.tournaments?.name || "?"} 
-          (${week.match_date}) · ${count || 0}/${week.max_players} jogadores · 
-          <strong style="color: ${week.status === 'open' ? 'var(--color-primary)' : '#f0c03a'}">${week.status}</strong>
-        </span>
-      `;
+          Semana ${week.week_number} — ${week.tournaments?.name || "?"}
+          (${week.match_date}) · ${count || 0}/${week.max_players} jogadores ·
+          <strong style="color:${week.status === "open" ? "var(--color-primary)" : "#f0c03a"}">
+            ${week.status}
+          </strong>
+        </span>`;
 
-      // Generate pairings button
+      // ── Botão Gerar Pareamento ────────────────────────────
       if (week.status === "open") {
-        const btnPair = document.createElement("button");
+        const btnPair       = document.createElement("button");
         btnPair.textContent = "Gerar Pareamento";
         btnPair.style.cssText = "background:#f0c03a;color:#1a1a1a;";
-        btnPair.onclick = async () => {
-          if (!confirm(`Gerar pareamento para Semana ${week.week_number}? Isso fechará o check-in.`)) return;
 
+        btnPair.onclick = async () => {
+          if (!confirm(
+            `Gerar pareamento para Semana ${week.week_number}?\n` +
+            `Isso fechará o check-in e enviará emails para todos os jogadores.`
+          )) return;
+
+          btnPair.disabled    = true;
+          btnPair.textContent = "Gerando...";
+
+          // 1) Gerar pareamento no banco
           const { data, error } = await supabase.rpc("generate_pairings", {
             p_tournament_week_id: week.id
           });
 
-          if (error) {
-            alert(error.message || "Erro ao gerar pareamento");
+          if (error || !data?.success) {
+            alert(error?.message || data?.error || "Erro ao gerar pareamento.");
+            btnPair.disabled    = false;
+            btnPair.textContent = "Gerar Pareamento";
             return;
           }
 
-          if (data?.success) {
-            alert(`Pareamento gerado! ${data.tables} mesas criadas.`);
-            loadWeeks();
+          // 2) Enviar emails via Edge Function
+          btnPair.textContent = "Enviando emails...";
+
+          const { data: emailData, error: emailError } = await supabase.functions.invoke(
+            "notify-pairings",
+            { body: { tournament_week_id: week.id } }
+          );
+
+          if (emailError) {
+            // Pareamento gerado com sucesso mesmo se email falhar — avisar mas não bloquear
+            console.error("Erro ao enviar emails:", emailError);
+            alert(
+              `✅ Pareamento gerado!\n\n` +
+              `⚠️ Houve um problema ao enviar os emails.\n` +
+              `Verifique o console para mais detalhes.`
+            );
           } else {
-            alert(data?.error || "Erro ao gerar pareamento.");
+            const sent   = emailData?.sent   ?? 0;
+            const failed = emailData?.results?.filter(r => r.status !== "enviado").length ?? 0;
+
+            let msg = `✅ Pareamento gerado com sucesso!\n📧 ${sent} emails enviados.`;
+            if (failed > 0) msg += `\n⚠️ ${failed} email(s) falharam — verifique o console.`;
+
+            console.log("Resultado dos emails:", emailData?.results);
+            alert(msg);
           }
+
+          loadWeeks();
         };
+
         li.appendChild(btnPair);
       }
 
-      // Close week button
-      const btnClose = document.createElement("button");
+      // ── Botão Encerrar semana ─────────────────────────────
+      const btnClose       = document.createElement("button");
       btnClose.textContent = "Encerrar";
       btnClose.style.cssText = "background:#ef4444;color:white;";
+
       btnClose.onclick = async () => {
         if (!confirm("Encerrar esta semana?")) return;
 
@@ -185,15 +160,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           .update({ status: "finished" })
           .eq("id", week.id);
 
-        if (error) {
-          alert(error.message);
-          return;
-        }
+        if (error) { alert(error.message); return; }
 
         loadWeeks();
       };
-      li.appendChild(btnClose);
 
+      li.appendChild(btnClose);
       weeksList.appendChild(li);
     }
   }
