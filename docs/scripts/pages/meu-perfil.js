@@ -34,27 +34,21 @@ function showState(name) {
   });
 }
 
-/* Sempre que for para a tela de auth, resetar para a aba de Login.
-   Evita que a pessoa volte vendo a aba "Criar conta" aberta. */
 function goToAuth() {
-  // Resetar abas — ativar "login", desativar "signup"
   document.querySelectorAll(".auth-tab").forEach(tab => {
     tab.classList.toggle("active", tab.dataset.tab === "login");
   });
 
-  // Mostrar form-login, esconder form-signup
   const formLogin  = document.getElementById("form-login");
   const formSignup = document.getElementById("form-signup");
   if (formLogin)  formLogin.style.display  = "block";
   if (formSignup) formSignup.style.display = "none";
 
-  // Limpar todos os campos e mensagens do form de signup
   const signupForm = document.getElementById("form-signup");
   if (signupForm) signupForm.reset();
   document.querySelectorAll(".form-error, .form-success")
     .forEach(el => el.classList.remove("visible"));
 
-  // Esconder reset box se estiver aberto
   const resetBox = document.getElementById("reset-box");
   if (resetBox) resetBox.style.display = "none";
 
@@ -78,11 +72,10 @@ const _urlParams = new URLSearchParams(window.location.search);
 const _urlType   = _urlHash.get("type") || _urlParams.get("type");
 
 let isRecoveryMode     = _urlType === "recovery";
-let isEmailConfirmMode = _urlType === "signup"; // link de confirmação de email
+let isEmailConfirmMode = _urlType === "signup";
 
-// Mostrar estado imediato sem esperar async
 if (isRecoveryMode)     showState("new-password");
-if (isEmailConfirmMode) showState("loading"); // aguarda SIGNED_IN processar o token
+if (isEmailConfirmMode) showState("loading");
 
 /* ═══════════════════════════════════════════
    AUTH STATE CHANGE
@@ -91,22 +84,17 @@ if (isEmailConfirmMode) showState("loading"); // aguarda SIGNED_IN processar o t
 let _initRunning = false;
 
 supabase.auth.onAuthStateChange(async (event, session) => {
-  // Redefinição de senha
   if (event === "PASSWORD_RECOVERY") {
     isRecoveryMode = true;
     showState("new-password");
     return;
   }
 
-  // SIGNED_IN após confirmação de email (type=signup na URL).
-  // Não dispara para login normal — nesses casos o handler de login
-  // já chama init() diretamente, evitando dupla execução.
   if (event === "SIGNED_IN" && session && !isRecoveryMode && isEmailConfirmMode) {
-    isEmailConfirmMode = false; // libera o init() para rodar
+    isEmailConfirmMode = false;
     if (!_initRunning) await init();
   }
 
-  // SIGNED_OUT: limpar estado e voltar para login
   if (event === "SIGNED_OUT") {
     currentUser   = null;
     matchedPlayer = null;
@@ -124,12 +112,9 @@ supabase.auth.onAuthStateChange(async (event, session) => {
    ═══════════════════════════════════════════ */
 
 async function init() {
-  // Modo de redefinição de senha — não interferir
-  if (isRecoveryMode) return;
-  // Modo de confirmação de email — aguardar SIGNED_IN processar o token
+  if (isRecoveryMode)     return;
   if (isEmailConfirmMode) return;
-  // Evita execuções paralelas
-  if (_initRunning) return;
+  if (_initRunning)       return;
   _initRunning = true;
 
   showState("loading");
@@ -185,12 +170,11 @@ async function checkPlayerProfile(user) {
     .select("*")
     .ilike("email", userEmail)
     .is("user_id", null)
-    .limit(1)       // evita erro se houver duplicatas no banco
+    .limit(1)
     .maybeSingle();
 
   if (emailMatchError) {
     console.error("Erro ao buscar player por email:", emailMatchError);
-    // Não bloquear o usuário — vai para cadastro novo
   }
 
   if (emailMatch) {
@@ -273,8 +257,6 @@ async function renderProfileView(player, user) {
       </div>`;
   }
 
-  // Destruir chart existente antes de reconstruir o DOM —
-  // evita ownChart.destroy() apontar para canvas já removido
   if (ownChart) { ownChart.destroy(); ownChart = null; }
 
   grid.innerHTML = `
@@ -316,7 +298,7 @@ async function renderProfileView(player, user) {
       </div>
     </div>
 
-    <!-- Check-in -->
+    <!-- Check-in (uma ou mais semanas) -->
     ${weekHtml}
 
     <!-- Actions -->
@@ -327,9 +309,6 @@ async function renderProfileView(player, user) {
 
   showState("profile");
 
-  // Event delegation no grid com AbortController.
-  // Cancela o listener anterior antes de adicionar um novo,
-  // evitando acúmulo de handlers a cada re-render (checkin/cancel).
   if (window._gridAbortController) {
     window._gridAbortController.abort();
   }
@@ -420,13 +399,13 @@ function renderOwnChart(tc) {
   const filtered = allOwnHistory.filter(h => h.time_control === tc);
 
   if (!filtered.length) {
-    canvas.style.display = "none";
+    canvas.style.display  = "none";
     emptyEl.style.display = "block";
     if (ownChart) { ownChart.destroy(); ownChart = null; }
     return;
   }
 
-  canvas.style.display = "block";
+  canvas.style.display  = "block";
   emptyEl.style.display = "none";
 
   const labels = [];
@@ -482,11 +461,11 @@ function renderOwnChart(tc) {
 }
 
 /* ═══════════════════════════════════════════
-   BUILD CHECK-IN SECTION
+   BUILD CHECK-IN SECTION — múltiplas semanas
    ═══════════════════════════════════════════ */
 
 async function buildCheckinSection(player) {
-  const { data: week } = await supabase
+  const { data: weeks } = await supabase
     .from("tournament_weeks")
     .select(`
       id, tournament_id, week_number, match_date, match_time,
@@ -494,11 +473,10 @@ async function buildCheckinSection(player) {
       tournaments ( name, edition )
     `)
     .in("status", ["open", "in_progress"])
-    .order("match_date", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("match_date", { ascending: true });
+  // ↑ Sem .limit(1).maybeSingle() — busca todas as semanas abertas
 
-  if (!week) {
+  if (!weeks || weeks.length === 0) {
     return `
       <div class="checkin-card">
         <div class="card-title">Próximo Torneio</div>
@@ -508,6 +486,12 @@ async function buildCheckinSection(player) {
       </div>`;
   }
 
+  // Gera um card por semana e junta tudo
+  const cards = await Promise.all(weeks.map(week => buildWeekCard(week, player)));
+  return cards.join("");
+}
+
+async function buildWeekCard(week, player) {
   const { data: checkins } = await supabase
     .from("tournament_checkins")
     .select(`
@@ -517,13 +501,13 @@ async function buildCheckinSection(player) {
     .eq("tournament_week_id", week.id)
     .order("checked_in_at", { ascending: true });
 
-  const checkinList   = checkins ?? [];
-  const isCheckedIn   = checkinList.some(c => c.player_id === player.id);
+  const checkinList    = checkins ?? [];
+  const isCheckedIn    = checkinList.some(c => c.player_id === player.id);
   const tournamentName = week.tournaments?.name || "Torneio";
-  const edition       = week.tournaments?.edition ? ` · Edição ${week.tournaments.edition}` : "";
-  const dateStr       = formatDate(week.match_date);
-  const timeStr       = week.match_time?.slice(0, 5) || "18:15";
-  const spotsLeft     = week.max_players - checkinList.length;
+  const edition        = week.tournaments?.edition ? ` · Edição ${week.tournaments.edition}` : "";
+  const dateStr        = formatDate(week.match_date);
+  const timeStr        = week.match_time?.slice(0, 5) || "18:15";
+  const spotsLeft      = week.max_players - checkinList.length;
 
   const matchDateTime  = new Date(`${week.match_date}T${week.match_time || "18:15:00"}`);
   const deadline       = new Date(matchDateTime.getTime() - 3 * 60 * 60 * 1000);
@@ -571,10 +555,9 @@ async function buildCheckinSection(player) {
 
   return `
     <div class="checkin-card">
-      <div class="card-title">Próximo Torneio</div>
+      <div class="card-title">Semana ${week.week_number} — ${tournamentName}${edition}</div>
       <div class="checkin-event">
         <div class="checkin-event-info">
-          <h3>Semana ${week.week_number} — ${tournamentName}${edition}</h3>
           <p>📅 ${dateStr} às ${timeStr}</p>
           <p class="slots">
             <strong>${checkinList.length}</strong> / ${week.max_players} confirmados ·
@@ -602,7 +585,7 @@ document.querySelectorAll(".auth-tab").forEach(tab => {
     document.querySelectorAll(".auth-tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
 
-    document.getElementById("form-login").style.display  = target === "login" ? "block" : "none";
+    document.getElementById("form-login").style.display  = target === "login"  ? "block" : "none";
     document.getElementById("form-signup").style.display = target === "signup" ? "block" : "none";
 
     const resetBox = document.getElementById("reset-box");
@@ -630,14 +613,14 @@ document.getElementById("form-login").addEventListener("submit", async (e) => {
   }
 
   const btn = e.target.querySelector("button[type=submit]");
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = "Entrando...";
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     showError(errorEl, "Email ou senha inválidos.");
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = "Entrar";
     return;
   }
@@ -736,7 +719,7 @@ document.getElementById("btn-save-password")?.addEventListener("click", async ()
     setTimeout(() => {
       isRecoveryMode = false;
       init();
-    }, 2000);
+    }, 1500);
   }
 });
 
@@ -744,126 +727,115 @@ document.getElementById("btn-save-password")?.addEventListener("click", async ()
    AUTH — Signup
    ═══════════════════════════════════════════ */
 
-document.getElementById("form-signup").addEventListener("submit", async (e) => {
+document.getElementById("form-signup")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const errorEl   = document.getElementById("signup-error");
   const successEl = document.getElementById("signup-success");
   errorEl.classList.remove("visible");
   successEl.classList.remove("visible");
 
-  const fullName = document.getElementById("signup-name").value.trim();
+  const name     = document.getElementById("signup-name").value.trim();
   const email    = document.getElementById("signup-email").value.trim();
   const password = document.getElementById("signup-password").value;
   const confirm  = document.getElementById("signup-password-confirm").value;
 
-  if (!fullName || !email || !password || !confirm) {
-    showError(errorEl, "Preencha todos os campos."); return;
-  }
-  if (password.length < 6) {
-    showError(errorEl, "A senha precisa ter pelo menos 6 caracteres."); return;
+  if (!name || !email || !password || !confirm) {
+    showError(errorEl, "Preencha todos os campos.");
+    return;
   }
   if (password !== confirm) {
-    showError(errorEl, "As senhas não coincidem."); return;
+    showError(errorEl, "As senhas não coincidem.");
+    return;
+  }
+  if (password.length < 6) {
+    showError(errorEl, "A senha deve ter pelo menos 6 caracteres.");
+    return;
   }
 
   const btn = e.target.querySelector("button[type=submit]");
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = "Criando conta...";
 
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { full_name: fullName },
-      // Ao clicar no link de confirmação, redirecionar direto para meu-perfil.html
-      // onde o fluxo detecta type=signup e mostra vinculação ou cadastro automaticamente
-      emailRedirectTo: window.location.origin + "/pages/meu-perfil.html"
+      data: { full_name: name },
+      emailRedirectTo: window.location.origin + "/pages/meu-perfil.html?type=signup"
     }
   });
+
+  btn.disabled    = false;
+  btn.textContent = "Criar conta";
 
   if (error) {
     showError(errorEl, translateError(error.message));
-    btn.disabled = false;
-    btn.textContent = "Criar conta";
-    return;
+  } else {
+    document.getElementById("verify-email-display").textContent = email;
+    showState("verify");
   }
-
-  if (data?.user?.identities?.length === 0) {
-    showError(errorEl, "Esse email já possui uma conta. Tente fazer login.");
-    btn.disabled = false;
-    btn.textContent = "Criar conta";
-    return;
-  }
-
-  if (data?.user && !data?.session) {
-    showSuccess(successEl, "Conta criada! Enviamos um link de confirmação para seu email.");
-    btn.disabled = false;
-    btn.textContent = "Criar conta";
-    return;
-  }
-
-  await init();
 });
 
 /* ═══════════════════════════════════════════
-   RESEND VERIFICATION EMAIL
+   VERIFICAÇÃO DE EMAIL
    ═══════════════════════════════════════════ */
 
 window.resendVerification = async function () {
-  if (!currentUser) return;
-
   const btn   = document.getElementById("btn-resend");
   const msgEl = document.getElementById("verify-message");
-  btn.disabled = true;
+
+  btn.disabled    = true;
   btn.textContent = "Enviando...";
-  msgEl.classList.remove("visible");
+
+  const email = currentUser?.email || document.getElementById("verify-email-display")?.textContent;
 
   const { error } = await supabase.auth.resend({
     type: "signup",
-    email: currentUser.email,
+    email,
     options: {
-      emailRedirectTo: window.location.origin + "/pages/meu-perfil.html"
+      emailRedirectTo: window.location.origin + "/pages/meu-perfil.html?type=signup"
     }
   });
 
-  msgEl.style.color = error ? "#e88" : "var(--green)";
-  msgEl.textContent = error
-    ? "Erro ao reenviar. Tente novamente em alguns minutos."
-    : "Email reenviado! Verifique sua caixa de entrada e spam.";
-  msgEl.classList.add("visible");
-  btn.disabled = false;
+  btn.disabled    = false;
   btn.textContent = "Reenviar email";
+
+  msgEl.style.display = "block";
+  if (error) {
+    msgEl.style.color = "#e88";
+    msgEl.textContent = "Erro ao reenviar. Tente em alguns minutos.";
+  } else {
+    msgEl.style.color = "#22c55e";
+    msgEl.textContent = "✅ Email reenviado!";
+  }
 };
 
 /* ═══════════════════════════════════════════
-   LINK — Vincular jogador existente
+   VINCULAR CONTA
    ═══════════════════════════════════════════ */
 
 document.getElementById("btn-link-confirm")?.addEventListener("click", async () => {
   const errorEl = document.getElementById("link-error");
   errorEl.classList.remove("visible");
 
-  if (!currentUser || !matchedPlayer) return;
-
-  if (!currentUser.email_confirmed_at) {
-    showError(errorEl, "Seu email precisa estar confirmado.");
+  if (!matchedPlayer) {
+    showError(errorEl, "Nenhum jogador para vincular.");
     return;
   }
 
   const btn = document.getElementById("btn-link-confirm");
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = "Vinculando...";
 
   const { data: rpcResult, error } = await supabase.rpc("link_player_to_user", {
     p_player_id: matchedPlayer.id
   });
 
-  // A RPC pode retornar {success: false, error: "..."} como DATA (não como error do Supabase)
   const rpcFailed = error || rpcResult?.success === false;
   if (rpcFailed) {
     const msg = error?.message || rpcResult?.error || "Erro ao vincular conta.";
     showError(errorEl, msg);
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = "Sim, vincular minha conta";
     return;
   }
@@ -893,11 +865,11 @@ document.getElementById("form-register")?.addEventListener("submit", async (e) =
   const ra        = document.getElementById("reg-ra").value.trim() || null;
   const level     = document.getElementById("reg-level").value;
 
-  if (!fullName) { showError(errorEl, "Preencha seu nome completo."); return; }
+  if (!fullName)  { showError(errorEl, "Preencha seu nome completo."); return; }
   if (!birthYear || birthYear < 1950 || birthYear > 2015) { showError(errorEl, "Preencha um ano de nascimento válido."); return; }
-  if (!gender)   { showError(errorEl, "Selecione seu gênero."); return; }
-  if (!phone)    { showError(errorEl, "Preencha seu telefone."); return; }
-  if (!level)    { showError(errorEl, "Selecione seu nível de jogo."); return; }
+  if (!gender)    { showError(errorEl, "Selecione seu gênero."); return; }
+  if (!phone)     { showError(errorEl, "Preencha seu telefone."); return; }
+  if (!level)     { showError(errorEl, "Selecione seu nível de jogo."); return; }
 
   if (!currentUser?.email_confirmed_at) {
     showError(errorEl, "Confirme seu email antes de criar o perfil.");
@@ -907,7 +879,7 @@ document.getElementById("form-register")?.addEventListener("submit", async (e) =
   const startingRating = RATING_BY_LEVEL[level] ?? 1400;
 
   const btn = e.target.querySelector("button[type=submit]");
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = "Cadastrando...";
 
   const { error } = await supabase
@@ -931,7 +903,7 @@ document.getElementById("form-register")?.addEventListener("submit", async (e) =
       msg = "Esse email já está vinculado a outro jogador. Entre em contato com a organização.";
     }
     showError(errorEl, msg);
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = "Finalizar cadastro";
     return;
   }
@@ -944,7 +916,6 @@ document.getElementById("form-register")?.addEventListener("submit", async (e) =
    ═══════════════════════════════════════════ */
 
 window.handleLogout = async function () {
-  // Destruir o chart antes do signOut para evitar referências a canvas destruído
   if (ownChart) { ownChart.destroy(); ownChart = null; }
   if (window._gridAbortController) {
     window._gridAbortController.abort();
@@ -988,8 +959,6 @@ function formatDate(dateStr) {
 
 /* ═══════════════════════════════════════════
    START
-   Se vier de um link de confirmação de email, NÃO chamar init() aqui.
-   O SIGNED_IN vai cuidar disso depois de processar o token.
    ═══════════════════════════════════════════ */
 
 if (!isEmailConfirmMode) init();

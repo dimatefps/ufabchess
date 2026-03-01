@@ -2,33 +2,30 @@ import { supabase } from "./supabase.js";
 
 /* ══════════════════════════════════
    CHECK-IN SERVICE
-   Atualizado para usar coluna user_id
 ══════════════════════════════════ */
 
-/** Buscar semana de torneio aberta (próxima) */
-export async function getOpenWeek() {
+const WEEK_SELECT = `
+  id, tournament_id, week_number, match_date, match_time,
+  max_players, status,
+  tournaments ( name, edition )
+`;
+
+/** Buscar TODAS as semanas abertas (múltiplas) */
+export async function getOpenWeeks() {
   const { data, error } = await supabase
     .from("tournament_weeks")
-    .select(`
-      id,
-      tournament_id,
-      week_number,
-      match_date,
-      match_time,
-      max_players,
-      status,
-      tournaments (
-        name,
-        edition
-      )
-    `)
+    .select(WEEK_SELECT)
     .in("status", ["open", "in_progress"])
-    .order("match_date", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("match_date", { ascending: true });
 
   if (error) throw error;
-  return data;
+  return data ?? [];
+}
+
+/** Mantido por compatibilidade — retorna apenas a primeira semana */
+export async function getOpenWeek() {
+  const weeks = await getOpenWeeks();
+  return weeks[0] ?? null;
 }
 
 /** Buscar check-ins de uma semana */
@@ -36,14 +33,8 @@ export async function getCheckins(weekId) {
   const { data, error } = await supabase
     .from("tournament_checkins")
     .select(`
-      id,
-      player_id,
-      checked_in_at,
-      players (
-        full_name,
-        rating_rapid,
-        games_played_rapid
-      )
+      id, player_id, checked_in_at,
+      players ( full_name, rating_rapid, games_played_rapid )
     `)
     .eq("tournament_week_id", weekId)
     .order("checked_in_at", { ascending: true });
@@ -57,7 +48,6 @@ export async function doCheckin(weekId) {
   const { data, error } = await supabase.rpc("checkin_tournament", {
     p_tournament_week_id: weekId
   });
-
   if (error) throw error;
   return data;
 }
@@ -67,17 +57,15 @@ export async function cancelCheckin(weekId) {
   const { data, error } = await supabase.rpc("cancel_checkin", {
     p_tournament_week_id: weekId
   });
-
   if (error) throw error;
   return data;
 }
 
-/** Verificar se o jogador logado já fez check-in */
+/** Verificar se o jogador logado já fez check-in em uma semana */
 export async function isPlayerCheckedIn(weekId) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
-  // Buscar player vinculado ao auth user via user_id
   const { data: player } = await supabase
     .from("players")
     .select("id")
@@ -100,14 +88,7 @@ export async function isPlayerCheckedIn(weekId) {
 export async function getWeeksByTournament(tournamentId) {
   const { data, error } = await supabase
     .from("tournament_weeks")
-    .select(`
-      id,
-      week_number,
-      match_date,
-      match_time,
-      max_players,
-      status
-    `)
+    .select("id, week_number, match_date, match_time, max_players, status")
     .eq("tournament_id", tournamentId)
     .order("week_number", { ascending: false });
 
