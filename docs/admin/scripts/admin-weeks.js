@@ -117,9 +117,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           // 2) Enviar emails via Edge Function
           btnPair.textContent = "Enviando emails...";
 
+          // Buscar JWT da sessão atual para autenticar na Edge Function
+          const { data: { session } } = await supabase.auth.getSession();
           const { data: emailData, error: emailError } = await supabase.functions.invoke(
             "notify-pairings",
-            { body: { tournament_week_id: week.id } }
+            {
+              body: { tournament_week_id: week.id },
+              headers: { Authorization: `Bearer ${session?.access_token}` }
+            }
           );
 
           if (emailError) {
