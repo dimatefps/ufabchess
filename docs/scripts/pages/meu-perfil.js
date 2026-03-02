@@ -181,23 +181,10 @@ async function renderProfileView(player, user) {
   const { count: playersAbove } = await supabase.from("players").select("id", { count: "exact", head: true }).gt("rating_rapid", player.rating_rapid ?? 0);
   const rank = (playersAbove ?? 0) + 1;
 
-  let weekHtml = "";
-  try {
-    weekHtml = await buildCheckinSection(player);
-  } catch (err) {
-    console.error("Erro ao carregar torneio:", err);
-    weekHtml = `
-      <div class="checkin-card">
-        <div class="card-title">Próximo Torneio</div>
-        <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:.9rem;">
-          Erro ao carregar informações de torneio.
-        </div>
-      </div>`;
-  }
-
   if (ownChart) { ownChart.destroy(); ownChart = null; }
 
   grid.innerHTML = `
+    <!-- Header sempre visível -->
     <div class="profile-header-card">
       <div class="p-avatar">${initials}</div>
       <div class="p-info">
@@ -207,6 +194,7 @@ async function renderProfileView(player, user) {
       </div>
     </div>
 
+    <!-- Stats sempre visíveis -->
     <div class="stat-card">
       <div class="stat-value">${player.rating_rapid ?? 1400}</div>
       <div class="stat-label">Rating Rápidas</div>
@@ -216,24 +204,36 @@ async function renderProfileView(player, user) {
       <div class="stat-label">Partidas Jogadas</div>
     </div>
 
-    <div class="chart-card">
-      <div class="chart-header">
-        <div class="card-title" style="margin-bottom:0;">Evolução do Rating</div>
-        <div class="chart-tc-tabs">
-          <button class="tc-tab active" data-tc="rapid">Rapid</button>
-          <button class="tc-tab" data-tc="blitz">Blitz</button>
-          <button class="tc-tab" data-tc="standard">Standard</button>
+    <!-- Tabs de navegação — 2 abas -->
+    <div class="profile-section-tabs">
+      <button class="psec-tab active" data-tab="progresso">📈 Progresso</button>
+      <button class="psec-tab" data-tab="torneios">♟️ Torneios</button>
+    </div>
+
+    <!-- Painel: Progresso -->
+    <div class="psec-panel active" id="psec-progresso">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="card-title" style="margin-bottom:0;">Evolução do Rating</div>
+          <div class="chart-tc-tabs">
+            <button class="tc-tab active" data-tc="rapid">Rapid</button>
+            <button class="tc-tab" data-tc="blitz">Blitz</button>
+            <button class="tc-tab" data-tc="standard">Standard</button>
+          </div>
         </div>
-      </div>
-      <div class="chart-canvas-wrap"><canvas id="rating-chart-own"></canvas></div>
-      <div id="chart-own-empty" class="chart-empty" style="display:none;">
-        Nenhuma partida registrada nesta modalidade ainda.
+        <div class="chart-canvas-wrap"><canvas id="rating-chart-own"></canvas></div>
+        <div id="chart-own-empty" class="chart-empty" style="display:none;">
+          Nenhuma partida registrada nesta modalidade ainda.
+        </div>
       </div>
     </div>
 
-    ${weekHtml}
+    <!-- Painel: Torneios (quadrimestral + aberto unificados) -->
+    <div class="psec-panel" id="psec-torneios">
+      <div style="color:var(--text-muted);font-size:.88rem;padding:24px 0;">Carregando...</div>
+    </div>
 
-    <div class="profile-actions">
+    <div class="profile-actions" style="grid-column:unset;margin-top:4px;">
       <a href="./pareamento.html" class="btn-secondary">Ver Pareamentos →</a>
       <button class="btn-logout" onclick="handleLogout()">Sair da conta</button>
     </div>`;
@@ -243,7 +243,18 @@ async function renderProfileView(player, user) {
   if (window._gridAbortController) window._gridAbortController.abort();
   window._gridAbortController = new AbortController();
 
+  /* ── Tabs de seção ── */
+  grid.querySelectorAll(".psec-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      grid.querySelectorAll(".psec-tab").forEach(t => t.classList.remove("active"));
+      grid.querySelectorAll(".psec-panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(`psec-${tab.dataset.tab}`).classList.add("active");
+    });
+  });
+
   grid.addEventListener("click", async (e) => {
+    /* ── Confirmar presença ── */
     if (e.target.id === "btn-checkin") {
       const btn       = e.target;
       const sessionId = btn.dataset.weekId;
@@ -258,6 +269,7 @@ async function renderProfileView(player, user) {
       }
     }
 
+    /* ── Cancelar presença ── */
     if (e.target.id === "btn-cancel-checkin") {
       const btn       = e.target;
       const sessionId = btn.dataset.weekId;
@@ -271,9 +283,25 @@ async function renderProfileView(player, user) {
         await renderProfileView(player, currentUser);
       }
     }
+
+    /* ── Expandir/recolher lista de inscritos ── */
+    if (e.target.classList.contains("btn-ver-inscritos")) {
+      const btn       = e.target;
+      const sessionId = btn.dataset.sessionId;
+      const listEl    = document.getElementById(`inscritos-${sessionId}`);
+      if (!listEl) return;
+      const hidden = listEl.style.display === "none";
+      listEl.style.display = hidden ? "block" : "none";
+      btn.textContent = hidden
+        ? `▲ Ocultar participantes`
+        : `▼ Ver participantes (${btn.dataset.count})`;
+    }
   }, { signal: window._gridAbortController.signal });
 
   await loadOwnRatingChart(player.id);
+
+  /* ── Carregar painel de torneios (unificado) ── */
+  buildTorneiosPanel("psec-torneios", player).catch(console.error);
 
   document.querySelectorAll(".tc-tab").forEach(tab => {
     tab.addEventListener("click", () => {
@@ -332,33 +360,50 @@ function renderOwnChart(tc) {
 }
 
 /* ═══════════════════════════════════════════
-   BUILD CHECK-IN SECTION — múltiplas sessões
+   PAINEL TORNEIOS — quadrimestral + aberto
+   Quadrimestral primeiro, depois abertos
    ═══════════════════════════════════════════ */
 
-async function buildCheckinSection(player) {
+async function buildTorneiosPanel(panelId, player) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+
   const { data: sessions } = await supabase
     .from("tournament_sessions")
     .select(`
       id, tournament_id, session_number, match_date, match_time,
       max_players, status,
-      tournaments ( name, edition )
+      tournaments ( name, edition, type )
     `)
     .in("status", ["open", "in_progress"])
     .order("match_date", { ascending: true });
 
-  if (!sessions || sessions.length === 0) {
-    return `
-      <div class="checkin-card">
-        <div class="card-title">Próximo Torneio</div>
-        <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:.9rem;">
-          Nenhum torneio aberto para inscrição no momento.
-        </div>
+  // Separar e ordenar: quadrimestral primeiro, depois abertos
+  const quad   = (sessions ?? []).filter(s => s.tournaments?.type === "quadrimestral");
+  const diario = (sessions ?? []).filter(s => s.tournaments?.type === "diario");
+  const all    = [...quad, ...diario];
+
+  if (!all.length) {
+    panel.innerHTML = `
+      <div style="text-align:center;padding:48px 20px;
+                  background:var(--bg-card);border:1px dashed var(--border);
+                  border-radius:var(--radius-md);">
+        <div style="font-size:2rem;margin-bottom:12px;">♟️</div>
+        <p style="color:var(--text-muted);font-size:.9rem;">Nenhum torneio aberto para inscrição no momento.</p>
       </div>`;
+    return;
   }
 
-  const cards = await Promise.all(sessions.map(s => buildSessionCard(s, player)));
-  return cards.join("");
+  const cards = await Promise.all(all.map(s => buildSessionCard(s, player)));
+  panel.innerHTML = cards.join("");
 }
+
+/* ═══════════════════════════════════════════
+   BUILD SESSION CARD
+   — barra de progresso de ocupação
+   — lista de inscritos colapsável (oculta por padrão)
+   — cores por tipo: verde=quadrimestral, amarelo=aberto
+   ═══════════════════════════════════════════ */
 
 async function buildSessionCard(session, player) {
   const { data: checkins } = await supabase
@@ -369,11 +414,24 @@ async function buildSessionCard(session, player) {
 
   const checkinList    = checkins ?? [];
   const isCheckedIn    = checkinList.some(c => c.player_id === player.id);
+  const isDiario       = session.tournaments?.type === "diario";
+
+  // Quadrimestral = verde  |  Aberto = amarelo (igual à página de torneios)
+  const accentColor    = isDiario ? "var(--yellow)" : "var(--green)";
+  const accentText     = isDiario ? "#1a1208"       : "#052e16";
+  const typeIcon       = isDiario ? "🎯" : "🏆";
+  const typeLabel      = isDiario ? "Torneio Aberto" : "Quadrimestral";
+
   const tournamentName = session.tournaments?.name || "Torneio";
   const edition        = session.tournaments?.edition ? ` · Edição ${session.tournaments.edition}` : "";
+  const sessionLabel   = isDiario
+    ? `${typeIcon} ${typeLabel} — ${tournamentName}${edition}`
+    : `${typeIcon} ${typeLabel} — Dia ${session.session_number} · ${tournamentName}${edition}`;
+
   const dateStr        = formatDate(session.match_date);
   const timeStr        = session.match_time?.slice(0, 5) || "18:15";
   const spotsLeft      = session.max_players - checkinList.length;
+  const pct            = Math.min(100, Math.round((checkinList.length / session.max_players) * 100));
 
   const matchDateTime  = new Date(`${session.match_date}T${session.match_time || "18:15:00"}`);
   const deadline       = new Date(matchDateTime.getTime() - 3 * 60 * 60 * 1000);
@@ -399,11 +457,13 @@ async function buildSessionCard(session, player) {
     actionHtml = `<span style="font-size:.82rem;color:#e88;">Vagas esgotadas</span>`;
   } else {
     actionHtml = `<button id="btn-checkin" class="btn-primary" data-week-id="${session.id}"
-      style="white-space:nowrap;padding:10px 20px;">
+      style="white-space:nowrap;padding:10px 20px;
+             background:${accentColor};color:${accentText};border-color:${accentColor};">
       Confirmar presença
     </button>`;
   }
 
+  // Lista de inscritos (montada mas oculta por padrão)
   const listHtml = checkinList.length
     ? checkinList.map((c, i) => {
         const b = getTitleBadge(c.players?.rating_rapid, c.players?.games_played_rapid);
@@ -417,8 +477,11 @@ async function buildSessionCard(session, player) {
     : `<div style="padding:14px;color:var(--text-muted);font-size:.85rem;">Nenhum jogador confirmado ainda.</div>`;
 
   return `
-    <div class="checkin-card">
-      <div class="card-title">Torneio ${session.session_number} — ${tournamentName}${edition}</div>
+    <div class="checkin-card" style="border-left:3px solid ${accentColor};margin-bottom:16px;">
+      <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;
+                  letter-spacing:.7px;color:${accentColor};margin-bottom:12px;">
+        ${sessionLabel}
+      </div>
       <div class="checkin-event">
         <div class="checkin-event-info">
           <p>📅 ${dateStr} às ${timeStr}</p>
@@ -426,15 +489,68 @@ async function buildSessionCard(session, player) {
             <strong>${checkinList.length}</strong> / ${session.max_players} confirmados ·
             ${spotsLeft > 0 ? `${spotsLeft} vagas restantes` : "Lotado"}
           </p>
-          ${!deadlinePassed ? `<p style="font-size:.76rem;color:var(--text-muted);margin-top:2px;">Prazo: até ${deadlineStr}</p>` : ""}
+          ${!deadlinePassed
+            ? `<p style="font-size:.76rem;color:var(--text-muted);margin-top:2px;">Prazo: até ${deadlineStr}</p>`
+            : ""}
         </div>
         <div>${actionHtml}</div>
       </div>
-      <div class="checkin-list">
-        <div class="checkin-list-header">Confirmados</div>
-        ${listHtml}
+
+      <!-- Barra de progresso de ocupação -->
+      <div style="margin-top:14px;"
+           title="${checkinList.length} de ${session.max_players} vagas preenchidas (${pct}%)">
+        <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${accentColor};
+                      border-radius:3px;transition:width .6s ease;"></div>
+        </div>
       </div>
+
+      <!-- Botão para expandir lista de inscritos (oculto por padrão) -->
+      ${checkinList.length > 0 ? `
+      <div style="margin-top:10px;">
+        <button class="btn-ver-inscritos"
+          data-session-id="${session.id}"
+          data-count="${checkinList.length}"
+          style="background:none;border:none;color:var(--text-muted);font-family:var(--font-body);
+                 font-size:.78rem;font-weight:600;cursor:pointer;padding:4px 0;
+                 text-decoration:underline;text-underline-offset:3px;transition:color .18s;">
+          ▼ Ver participantes (${checkinList.length})
+        </button>
+        <div id="inscritos-${session.id}" class="checkin-list" style="display:none;margin-top:10px;">
+          <div class="checkin-list-header">Confirmados</div>
+          ${listHtml}
+        </div>
+      </div>` : ""}
     </div>`;
+}
+
+/* ═══════════════════════════════════════════
+   BUILD CHECK-IN SECTION (legado — mantido)
+   ═══════════════════════════════════════════ */
+
+async function buildCheckinSection(player) {
+  const { data: sessions } = await supabase
+    .from("tournament_sessions")
+    .select(`
+      id, tournament_id, session_number, match_date, match_time,
+      max_players, status,
+      tournaments ( name, edition, type )
+    `)
+    .in("status", ["open", "in_progress"])
+    .order("match_date", { ascending: true });
+
+  if (!sessions || sessions.length === 0) {
+    return `
+      <div class="checkin-card">
+        <div class="card-title">Próximo Torneio</div>
+        <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:.9rem;">
+          Nenhum torneio aberto para inscrição no momento.
+        </div>
+      </div>`;
+  }
+
+  const cards = await Promise.all(sessions.map(s => buildSessionCard(s, player)));
+  return cards.join("");
 }
 
 /* ═══════════════════════════════════════════
@@ -462,61 +578,51 @@ document.getElementById("form-login").addEventListener("submit", async (e) => {
   e.preventDefault();
   const errorEl = document.getElementById("login-error");
   errorEl.classList.remove("visible");
-  const email = document.getElementById("login-email").value.trim();
+  const email    = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
   if (!email || !password) { showError(errorEl, "Preencha todos os campos."); return; }
   const btn = e.target.querySelector("button[type=submit]");
   btn.disabled = true; btn.textContent = "Entrando...";
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) { showError(errorEl, "Email ou senha inválidos."); btn.disabled = false; btn.textContent = "Entrar"; return; }
+  if (error) {
+    showError(errorEl, "Email ou senha inválidos.");
+    btn.disabled = false; btn.textContent = "Entrar";
+    return;
+  }
   await init();
 });
 
-document.getElementById("login-password")?.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") e.target.closest("form").requestSubmit();
-});
-
 /* ═══════════════════════════════════════════
-   RESET DE SENHA
+   AUTH — Esqueceu a senha
    ═══════════════════════════════════════════ */
 
 document.getElementById("btn-forgot")?.addEventListener("click", () => {
-  const resetBox = document.getElementById("reset-box");
-  const isVisible = resetBox.style.display !== "none";
-  resetBox.style.display = isVisible ? "none" : "block";
-  if (!isVisible) {
-    const loginEmail = document.getElementById("login-email")?.value;
-    if (loginEmail) document.getElementById("reset-email").value = loginEmail;
-    document.getElementById("reset-message").textContent = "";
-  }
+  const box = document.getElementById("reset-box");
+  if (box) box.style.display = box.style.display === "none" ? "block" : "none";
 });
 
 document.getElementById("btn-send-reset")?.addEventListener("click", async () => {
+  const email = document.getElementById("reset-email").value.trim();
   const msgEl = document.getElementById("reset-message");
-  const email = document.getElementById("reset-email")?.value.trim();
-  const btn   = document.getElementById("btn-send-reset");
   if (!email) { msgEl.style.color = "#e88"; msgEl.textContent = "Digite seu email."; return; }
-  btn.disabled = true; btn.textContent = "Enviando..."; msgEl.textContent = "";
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.origin + "/pages/meu-perfil.html"
   });
-  btn.disabled = false; btn.textContent = "Enviar link de redefinição";
-  if (error) { msgEl.style.color = "#e88"; msgEl.textContent = "Erro ao enviar. Verifique o email e tente novamente."; }
-  else { msgEl.style.color = "#22c55e"; msgEl.textContent = "✅ Link enviado! Verifique sua caixa de entrada."; }
+  if (error) { msgEl.style.color = "#e88"; msgEl.textContent = "Erro ao enviar. Verifique o email."; }
+  else       { msgEl.style.color = "#22c55e"; msgEl.textContent = "✅ Link enviado! Verifique seu email."; }
 });
 
 /* ═══════════════════════════════════════════
-   NOVA SENHA
+   AUTH — Nova senha (recovery mode)
    ═══════════════════════════════════════════ */
 
 document.getElementById("btn-save-password")?.addEventListener("click", async () => {
-  const msgEl = document.getElementById("new-pwd-message");
-  const pwd   = document.getElementById("new-pwd")?.value;
-  const confirm = document.getElementById("new-pwd-confirm")?.value;
-  const btn   = document.getElementById("btn-save-password");
-  msgEl.textContent = "";
+  const pwd     = document.getElementById("new-password").value;
+  const confirm = document.getElementById("confirm-password").value;
+  const msgEl   = document.getElementById("password-message");
+  const btn     = document.getElementById("btn-save-password");
   if (!pwd || pwd.length < 6) { msgEl.style.color = "#e88"; msgEl.textContent = "A senha deve ter pelo menos 6 caracteres."; return; }
-  if (pwd !== confirm) { msgEl.style.color = "#e88"; msgEl.textContent = "As senhas não coincidem."; return; }
+  if (pwd !== confirm)        { msgEl.style.color = "#e88"; msgEl.textContent = "As senhas não coincidem."; return; }
   btn.disabled = true; btn.textContent = "Salvando...";
   const { error } = await supabase.auth.updateUser({ password: pwd });
   btn.disabled = false; btn.textContent = "Salvar nova senha";
@@ -533,16 +639,16 @@ document.getElementById("btn-save-password")?.addEventListener("click", async ()
 
 document.getElementById("form-signup")?.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const errorEl = document.getElementById("signup-error");
+  const errorEl   = document.getElementById("signup-error");
   const successEl = document.getElementById("signup-success");
   errorEl.classList.remove("visible"); successEl.classList.remove("visible");
-  const name = document.getElementById("signup-name").value.trim();
-  const email = document.getElementById("signup-email").value.trim();
+  const name     = document.getElementById("signup-name").value.trim();
+  const email    = document.getElementById("signup-email").value.trim();
   const password = document.getElementById("signup-password").value;
-  const confirm = document.getElementById("signup-password-confirm").value;
+  const confirm  = document.getElementById("signup-password-confirm").value;
   if (!name || !email || !password || !confirm) { showError(errorEl, "Preencha todos os campos."); return; }
   if (password !== confirm) { showError(errorEl, "As senhas não coincidem."); return; }
-  if (password.length < 6) { showError(errorEl, "A senha deve ter pelo menos 6 caracteres."); return; }
+  if (password.length < 6)  { showError(errorEl, "A senha deve ter pelo menos 6 caracteres."); return; }
   const btn = e.target.querySelector("button[type=submit]");
   btn.disabled = true; btn.textContent = "Criando conta...";
   const { error } = await supabase.auth.signUp({
@@ -559,15 +665,18 @@ document.getElementById("form-signup")?.addEventListener("submit", async (e) => 
    ═══════════════════════════════════════════ */
 
 window.resendVerification = async function () {
-  const btn = document.getElementById("btn-resend");
+  const btn   = document.getElementById("btn-resend");
   const msgEl = document.getElementById("verify-message");
   btn.disabled = true; btn.textContent = "Enviando...";
   const email = currentUser?.email || document.getElementById("verify-email-display")?.textContent;
-  const { error } = await supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: window.location.origin + "/pages/meu-perfil.html?type=signup" } });
+  const { error } = await supabase.auth.resend({
+    type: "signup", email,
+    options: { emailRedirectTo: window.location.origin + "/pages/meu-perfil.html?type=signup" }
+  });
   btn.disabled = false; btn.textContent = "Reenviar email";
   msgEl.style.display = "block";
   if (error) { msgEl.style.color = "#e88"; msgEl.textContent = "Erro ao reenviar. Tente em alguns minutos."; }
-  else { msgEl.style.color = "#22c55e"; msgEl.textContent = "✅ Email reenviado!"; }
+  else       { msgEl.style.color = "#22c55e"; msgEl.textContent = "✅ Email reenviado!"; }
 };
 
 /* ═══════════════════════════════════════════
@@ -601,7 +710,7 @@ document.getElementById("btn-link-deny")?.addEventListener("click", () => {
 
 document.getElementById("form-register")?.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const errorEl = document.getElementById("register-error");
+  const errorEl   = document.getElementById("register-error");
   errorEl.classList.remove("visible");
   const fullName  = document.getElementById("reg-name").value.trim();
   const birthYear = parseInt(document.getElementById("reg-birth").value);
@@ -649,14 +758,16 @@ window.handleLogout = async function () {
    HELPERS
    ═══════════════════════════════════════════ */
 
-function showError(el, msg) { el.textContent = msg; el.classList.add("visible"); }
+function showError(el, msg)   { el.textContent = msg; el.classList.add("visible"); }
 function showSuccess(el, msg) { el.textContent = msg; el.classList.add("visible"); }
 
 function translateError(message) {
-  if (message.includes("already registered")) return "Este email já possui uma conta.";
-  if (message.includes("valid email"))        return "Insira um email válido.";
-  if (message.includes("least 6") || message.includes("at least")) return "A senha deve ter pelo menos 6 caracteres.";
-  if (message.includes("rate limit") || message.includes("too many") || message.includes("email rate")) return "Muitas tentativas. Aguarde 5 minutos e tente novamente.";
+  if (message.includes("already registered"))   return "Este email já possui uma conta.";
+  if (message.includes("valid email"))           return "Insira um email válido.";
+  if (message.includes("least 6") || message.includes("at least"))
+    return "A senha deve ter pelo menos 6 caracteres.";
+  if (message.includes("rate limit") || message.includes("too many") || message.includes("email rate"))
+    return "Muitas tentativas. Aguarde 5 minutos e tente novamente.";
   return message;
 }
 
