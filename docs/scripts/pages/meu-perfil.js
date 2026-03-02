@@ -198,6 +198,7 @@ async function renderProfileView(player, user) {
   if (ownChart) { ownChart.destroy(); ownChart = null; }
 
   grid.innerHTML = `
+    <!-- Header sempre visível -->
     <div class="profile-header-card">
       <div class="p-avatar">${initials}</div>
       <div class="p-info">
@@ -207,6 +208,7 @@ async function renderProfileView(player, user) {
       </div>
     </div>
 
+    <!-- Stats sempre visíveis -->
     <div class="stat-card">
       <div class="stat-value">${player.rating_rapid ?? 1400}</div>
       <div class="stat-label">Rating Rápidas</div>
@@ -216,32 +218,59 @@ async function renderProfileView(player, user) {
       <div class="stat-label">Partidas Jogadas</div>
     </div>
 
-    <div class="chart-card">
-      <div class="chart-header">
-        <div class="card-title" style="margin-bottom:0;">Evolução do Rating</div>
-        <div class="chart-tc-tabs">
-          <button class="tc-tab active" data-tc="rapid">Rapid</button>
-          <button class="tc-tab" data-tc="blitz">Blitz</button>
-          <button class="tc-tab" data-tc="standard">Standard</button>
+    <!-- Tabs de navegação -->
+    <div class="profile-section-tabs">
+      <button class="psec-tab active" data-tab="progresso">📈 Progresso</button>
+      <button class="psec-tab" data-tab="quadrimestral">🏆 Quadrimestral</button>
+      <button class="psec-tab" data-tab="diario">🎯 Torneios Abertos</button>
+    </div>
+
+    <!-- Painel: Progresso -->
+    <div class="psec-panel active" id="psec-progresso">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="card-title" style="margin-bottom:0;">Evolução do Rating</div>
+          <div class="chart-tc-tabs">
+            <button class="tc-tab active" data-tc="rapid">Rapid</button>
+            <button class="tc-tab" data-tc="blitz">Blitz</button>
+            <button class="tc-tab" data-tc="standard">Standard</button>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="rating-chart-own"></canvas></div>
+        <div id="chart-own-empty" class="chart-empty" style="display:none;">
+          Nenhuma partida registrada nesta modalidade ainda.
         </div>
       </div>
-      <div class="chart-canvas-wrap"><canvas id="rating-chart-own"></canvas></div>
-      <div id="chart-own-empty" class="chart-empty" style="display:none;">
-        Nenhuma partida registrada nesta modalidade ainda.
+      <div class="profile-actions" style="grid-column:unset;margin-top:4px;">
+        <a href="./pareamento.html" class="btn-secondary">Ver Pareamentos →</a>
+        <button class="btn-logout" onclick="handleLogout()">Sair da conta</button>
       </div>
     </div>
 
-    ${weekHtml}
+    <!-- Painel: Quadrimestral -->
+    <div class="psec-panel" id="psec-quadrimestral">
+      <div style="color:var(--text-muted);font-size:.88rem;padding:24px 0;">Carregando...</div>
+    </div>
 
-    <div class="profile-actions">
-      <a href="./pareamento.html" class="btn-secondary">Ver Pareamentos →</a>
-      <button class="btn-logout" onclick="handleLogout()">Sair da conta</button>
+    <!-- Painel: Torneios Abertos -->
+    <div class="psec-panel" id="psec-diario">
+      <div style="color:var(--text-muted);font-size:.88rem;padding:24px 0;">Carregando...</div>
     </div>`;
 
   showState("profile");
 
   if (window._gridAbortController) window._gridAbortController.abort();
   window._gridAbortController = new AbortController();
+
+  /* ── Tabs de seção ── */
+  grid.querySelectorAll(".psec-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      grid.querySelectorAll(".psec-tab").forEach(t => t.classList.remove("active"));
+      grid.querySelectorAll(".psec-panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(`psec-${tab.dataset.tab}`).classList.add("active");
+    });
+  });
 
   grid.addEventListener("click", async (e) => {
     if (e.target.id === "btn-checkin") {
@@ -274,6 +303,10 @@ async function renderProfileView(player, user) {
   }, { signal: window._gridAbortController.signal });
 
   await loadOwnRatingChart(player.id);
+
+  /* ── Carregar painéis de torneio ── */
+  buildTournamentTab("psec-quadrimestral", "quadrimestral", player).catch(console.error);
+  buildTournamentTab("psec-diario",        "diario",        player).catch(console.error);
 
   document.querySelectorAll(".tc-tab").forEach(tab => {
     tab.addEventListener("click", () => {
@@ -332,7 +365,48 @@ function renderOwnChart(tc) {
 }
 
 /* ═══════════════════════════════════════════
-   BUILD CHECK-IN SECTION — múltiplas sessões
+   BUILD TOURNAMENT TAB — sessões por tipo
+   ═══════════════════════════════════════════ */
+
+async function buildTournamentTab(panelId, type, player) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+
+  const { data: sessions } = await supabase
+    .from("tournament_sessions")
+    .select(`
+      id, tournament_id, session_number, match_date, match_time,
+      max_players, status,
+      tournaments ( name, edition, type )
+    `)
+    .in("status", ["open", "in_progress"])
+    .eq("tournaments.type", type)
+    .order("match_date", { ascending: true });
+
+  // Filtrar client-side pois Supabase não filtra joins embeds por padrão
+  const filtered = (sessions ?? []).filter(s => s.tournaments?.type === type);
+
+  if (!filtered.length) {
+    const emptyMsg = type === "quadrimestral"
+      ? "Nenhum torneio quadrimestral aberto para inscrição no momento."
+      : "Nenhum torneio aberto (sábado) disponível no momento.";
+    const icon = type === "quadrimestral" ? "🏆" : "🎯";
+    panel.innerHTML = `
+      <div style="text-align:center;padding:48px 20px;
+                  background:var(--bg-card);border:1px dashed var(--border);
+                  border-radius:var(--radius-md);">
+        <div style="font-size:2rem;margin-bottom:12px;">${icon}</div>
+        <p style="color:var(--text-muted);font-size:.9rem;">${emptyMsg}</p>
+      </div>`;
+    return;
+  }
+
+  const cards = await Promise.all(filtered.map(s => buildSessionCard(s, player)));
+  panel.innerHTML = cards.join("");
+}
+
+/* ═══════════════════════════════════════════
+   BUILD CHECK-IN SECTION (legado — mantido)
    ═══════════════════════════════════════════ */
 
 async function buildCheckinSection(player) {
@@ -341,7 +415,7 @@ async function buildCheckinSection(player) {
     .select(`
       id, tournament_id, session_number, match_date, match_time,
       max_players, status,
-      tournaments ( name, edition )
+      tournaments ( name, edition, type )
     `)
     .in("status", ["open", "in_progress"])
     .order("match_date", { ascending: true });
@@ -371,6 +445,10 @@ async function buildSessionCard(session, player) {
   const isCheckedIn    = checkinList.some(c => c.player_id === player.id);
   const tournamentName = session.tournaments?.name || "Torneio";
   const edition        = session.tournaments?.edition ? ` · Edição ${session.tournaments.edition}` : "";
+  const isDiario       = session.tournaments?.type === "diario";
+  const sessionLabel   = isDiario
+    ? `Torneio Aberto — ${tournamentName}${edition}`
+    : `Dia ${session.session_number} — ${tournamentName}${edition}`;
   const dateStr        = formatDate(session.match_date);
   const timeStr        = session.match_time?.slice(0, 5) || "18:15";
   const spotsLeft      = session.max_players - checkinList.length;
@@ -418,7 +496,7 @@ async function buildSessionCard(session, player) {
 
   return `
     <div class="checkin-card">
-      <div class="card-title">Torneio ${session.session_number} — ${tournamentName}${edition}</div>
+      <div class="card-title">${sessionLabel}</div>
       <div class="checkin-event">
         <div class="checkin-event-info">
           <p>📅 ${dateStr} às ${timeStr}</p>
