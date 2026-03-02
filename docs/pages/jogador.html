@@ -10,155 +10,198 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     .profile-loading {
-      text-align: center;
-      padding: 80px 20px;
-      color: var(--text-muted);
-      font-size: .9rem;
+      text-align: center; padding: 80px 20px;
+      color: var(--text-muted); font-size: .9rem;
     }
 
-    /* ── Header do jogador ── */
+    /* ── Header ── */
     .player-header {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 28px 32px;
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      margin-bottom: 16px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 28px 32px;
+      display: flex; align-items: center; gap: 24px; margin-bottom: 16px;
     }
     .player-avatar {
-      width: 72px; height: 72px;
-      border-radius: 50%;
-      background: var(--bg-secondary);
-      border: 2px solid var(--green);
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--bg-secondary); border: 2px solid var(--green);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.6rem; font-weight: 800; color: var(--green);
-      flex-shrink: 0;
+      font-size: 1.6rem; font-weight: 800; color: var(--green); flex-shrink: 0;
     }
     .player-info h2 {
       font-size: 1.3rem; margin-bottom: 4px;
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     }
-    .player-rank {
-      font-size: .85rem;
-      color: var(--text-secondary);
-    }
+    .player-rank { font-size: .85rem; color: var(--text-secondary); }
 
-    /* ── Grid de stats ── */
+    /* ── Stats ── */
     .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin-bottom: 20px;
     }
     .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 20px 16px;
-      text-align: center;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 20px 16px; text-align: center;
     }
     .stat-value {
       font-family: 'Courier New', monospace;
-      font-size: 1.6rem; font-weight: 800;
-      color: var(--green);
+      font-size: 1.6rem; font-weight: 800; color: var(--green);
     }
     .stat-label {
-      font-size: .72rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 1px;
-      color: var(--text-muted); margin-top: 4px;
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-muted); margin-top: 4px;
     }
+
+    /* ── Tabs de navegação ── */
+    .profile-tabs {
+      display: flex; gap: 0;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .profile-tab {
+      padding: 11px 22px;
+      font-family: var(--font-body); font-size: .88rem; font-weight: 600;
+      color: var(--text-muted); background: transparent; border: none;
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      cursor: pointer; transition: color .18s, border-color .18s;
+      white-space: nowrap;
+    }
+    .profile-tab:hover { color: var(--text-secondary); }
+    .profile-tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+    /* ── Painéis ── */
+    .profile-panel { display: none; }
+    .profile-panel.active { display: block; }
 
     /* ── Gráfico ── */
     .chart-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 24px;
-      margin-bottom: 16px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 24px; margin-bottom: 16px;
     }
     .chart-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
     }
     .chart-title {
-      font-size: .72rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 1.1px;
-      color: var(--green); font-family: var(--font-body);
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.1px; color: var(--green); font-family: var(--font-body);
     }
-    .chart-tc-tabs {
-      display: flex; gap: 6px;
-    }
+    .chart-tc-tabs { display: flex; gap: 6px; }
     .tc-tab {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      font-family: var(--font-body);
-      font-size: .76rem; font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all .18s ease;
+      background: none; border: 1px solid var(--border); color: var(--text-muted);
+      font-family: var(--font-body); font-size: .76rem; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px; cursor: pointer; transition: all .18s ease;
     }
-    .tc-tab.active {
-      background: var(--green);
-      border-color: var(--green);
-      color: #052e16;
-    }
-    .chart-canvas-wrap {
-      position: relative;
-      height: 220px;
-    }
+    .tc-tab.active { background: var(--green); border-color: var(--green); color: #052e16; }
+    .chart-canvas-wrap { position: relative; height: 220px; }
     .chart-empty {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--text-muted);
-      font-size: .88rem;
+      text-align: center; padding: 40px 20px;
+      color: var(--text-muted); font-size: .88rem;
     }
 
     /* ── Partidas recentes ── */
     .matches-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 24px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 24px;
     }
     .match-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: .88rem;
-      gap: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      font-size: .88rem; gap: 12px;
     }
     .match-row:last-child { border-bottom: none; }
-    .match-opponent { color: var(--text-primary); font-weight: 500; }
-    .match-result {
-      font-family: 'Courier New', monospace;
-      font-weight: 700; font-size: .92rem;
-    }
+    .match-opponent { color: var(--text-primary); font-weight: 500; flex: 1; }
+    .match-result { font-family: 'Courier New', monospace; font-weight: 700; font-size: .92rem; }
     .match-result.win  { color: var(--green); }
     .match-result.loss { color: #f87171; }
     .match-result.draw { color: var(--text-muted); }
-    .match-delta {
-      font-size: .8rem; font-weight: 700;
-      min-width: 52px; text-align: right;
-    }
+    .match-delta { font-size: .8rem; font-weight: 700; min-width: 48px; text-align: right; }
     .match-delta.pos { color: var(--green); }
     .match-delta.neg { color: #f87171; }
+
+    /* ── Painel de torneios: summary ── */
+    .tournament-summary {
+      display: flex; gap: 0;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); margin-bottom: 16px; overflow: hidden;
+    }
+    .summary-item {
+      flex: 1; padding: 18px 16px; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .summary-item:last-child { border-right: none; }
+    .summary-value {
+      font-family: 'Courier New', monospace; font-size: 1.5rem;
+      font-weight: 800; color: var(--green); display: block; line-height: 1;
+    }
+    .summary-label {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--text-muted); margin-top: 5px; display: block;
+    }
+
+    /* ── Cartão de torneio individual ── */
+    .player-tournament-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 18px 20px;
+      margin-bottom: 10px; transition: border-color .18s;
+    }
+    .player-tournament-card:hover { border-color: var(--border-light); }
+    .ptc-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; margin-bottom: 14px;
+    }
+    .ptc-name {
+      font-size: .92rem; font-weight: 700; color: var(--text-primary);
+      margin-bottom: 5px;
+    }
+    .ptc-link {
+      font-size: .78rem; font-weight: 600; color: var(--green);
+      text-decoration: none; white-space: nowrap; flex-shrink: 0;
+      transition: color .18s;
+    }
+    .ptc-link:hover { color: var(--green-light); }
+    .ptc-stats {
+      display: flex; gap: 0;
+      background: var(--bg-secondary); border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .ptc-stat {
+      flex: 1; padding: 10px 12px; text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .ptc-stat:last-child { border-right: none; }
+    .ptc-stat-value {
+      font-size: .95rem; font-weight: 700; color: var(--text-primary); display: block;
+    }
+    .ptc-stat-label {
+      font-size: .65rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--text-muted); margin-top: 2px; display: block;
+    }
+
+    /* ── Status badge ── */
+    .tournament-status-badge {
+      font-size: .65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .7px; padding: 2px 7px; border-radius: 10px; display: inline-block;
+    }
+    .tournament-status-badge.live {
+      background: rgba(118,150,86,.15); border: 1px solid rgba(118,150,86,.3); color: var(--green);
+    }
+    .tournament-status-badge.done {
+      background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-muted);
+    }
+
+    /* ── Estado vazio de torneios ── */
+    .tournament-empty {
+      text-align: center; padding: 52px 20px;
+      background: var(--bg-card); border: 1px dashed var(--border);
+      border-radius: var(--radius-md);
+    }
+    .tournament-empty-icon { font-size: 2.4rem; margin-bottom: 12px; }
+    .tournament-empty p { color: var(--text-muted); font-size: .9rem; }
 
     /* ── Back link ── */
     .back-link {
       display: inline-flex; align-items: center; gap: 6px;
       color: var(--text-muted); font-size: .85rem; font-weight: 600;
-      text-decoration: none; margin-bottom: 20px;
-      transition: color .18s ease;
+      text-decoration: none; margin-bottom: 20px; transition: color .18s ease;
     }
     .back-link:hover { color: var(--text-secondary); }
 
@@ -166,6 +209,9 @@
       .player-header { flex-direction: column; text-align: center; gap: 14px; }
       .player-info h2 { justify-content: center; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
+      .profile-tab { padding: 10px 14px; font-size: .8rem; }
+      .tournament-summary { flex-wrap: wrap; }
+      .summary-item { min-width: 33%; }
     }
   </style>
 </head>
@@ -176,7 +222,7 @@
     <div class="page-hero">
       <div class="container">
         <h1 id="page-title">Perfil do Jogador</h1>
-        <p>Estatísticas e histórico de rating.</p>
+        <p>Estatísticas, histórico de rating e participação em torneios.</p>
       </div>
     </div>
 
