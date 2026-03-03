@@ -63,9 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     btn.disabled = false; btn.textContent = "+ Criar Dia";
-
     if (error) { alert(error.message || "Erro ao criar dia."); return; }
-
     alert(`✅ Dia ${sessionNumber} criado com sucesso!`);
     await loadSessions();
   });
@@ -84,7 +82,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const btn = document.getElementById("btn-create-diario");
     btn.disabled = true; btn.textContent = "Criando...";
 
-    // 1) Criar a sessão via RPC
     const { error } = await supabase.rpc("create_tournament_session", {
       p_tournament_id:  tournamentId,
       p_session_number: 1,
@@ -97,7 +94,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert(error.message || "Erro ao criar torneio aberto."); return;
     }
 
-    // 2) Buscar a sessão recém-criada e atualizar total_rounds
     const { data: session } = await supabase
       .from("tournament_sessions")
       .select("id")
@@ -119,7 +115,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadSessions();
   });
 
-  /* ── Carregar lista de sessões ativas ─────────────── */
   await loadSessions();
 });
 
@@ -131,16 +126,11 @@ async function loadSessions() {
   const sessionsList = document.getElementById("weeks-list");
   if (!sessionsList) return;
 
-  sessionsList.innerHTML = `
-    <li style="color:var(--text-muted);font-size:.85rem;padding:10px 0;">Carregando...</li>`;
+  sessionsList.innerHTML = `<li style="color:var(--text-muted);font-size:.85rem;padding:10px 0;">Carregando...</li>`;
 
   const { data: sessions, error } = await supabase
     .from("tournament_sessions")
-    .select(`
-      id, session_number, match_date, match_time,
-      max_players, status, total_rounds, current_round,
-      tournaments ( id, name, edition, type )
-    `)
+    .select(`id, session_number, match_date, match_time, max_players, status, total_rounds, current_round, tournaments ( id, name, edition, type )`)
     .in("status", ["open", "in_progress"])
     .order("match_date", { ascending: true });
 
@@ -152,7 +142,6 @@ async function loadSessions() {
     return;
   }
 
-  // Carregar contagem de inscritos em paralelo
   const counts = await Promise.all(
     sessions.map(s =>
       supabase
@@ -166,24 +155,18 @@ async function loadSessions() {
   sessionsList.innerHTML = "";
 
   sessions.forEach((session, idx) => {
-    const count     = counts[idx];
-    const t         = session.tournaments;
-    const isDiario  = t?.type === "diario";
-    const isOpen    = session.status === "open";
-    const spotsLeft = session.max_players - count;
-    const pct       = Math.min(100, Math.round((count / session.max_players) * 100));
-    const dateStr   = formatDate(session.match_date);
-
+    const count       = counts[idx];
+    const t           = session.tournaments;
+    const isDiario    = t?.type === "diario";
+    const isOpen      = session.status === "open";
+    const spotsLeft   = session.max_players - count;
+    const pct         = Math.min(100, Math.round((count / session.max_players) * 100));
+    const dateStr     = formatDate(session.match_date);
     const accentColor = isDiario ? "var(--yellow)" : "var(--green)";
-    const typeLabel   = isDiario
-      ? `<span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
-                      padding:2px 7px;border-radius:10px;
-                      background:rgba(240,192,58,.1);border:1px solid rgba(240,192,58,.2);
-                      color:var(--yellow);">🎯 Torneio Aberto</span>`
-      : `<span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
-                      padding:2px 7px;border-radius:10px;
-                      background:rgba(118,150,86,.12);border:1px solid rgba(118,150,86,.25);
-                      color:var(--green);">🏆 Quadrimestral</span>`;
+
+    const typeLabel = isDiario
+      ? `<span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:2px 7px;border-radius:10px;background:rgba(240,192,58,.1);border:1px solid rgba(240,192,58,.2);color:var(--yellow);">🎯 Torneio Aberto</span>`
+      : `<span style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:2px 7px;border-radius:10px;background:rgba(118,150,86,.12);border:1px solid rgba(118,150,86,.25);color:var(--green);">🏆 Quadrimestral</span>`;
 
     const sessionLabel = isDiario
       ? `${t?.name ?? "Torneio Aberto"}${t?.edition ? ` · Ed. ${t.edition}` : ""}`
@@ -193,7 +176,7 @@ async function loadSessions() {
       ? `<span class="session-status status-open">aberto</span>`
       : `<span class="session-status status-progress">em andamento</span>`;
 
-    // ── Bloco de rodadas (só para diário) ────────────
+    // Bloco de rodadas (só diário)
     let roundsHtml = "";
     if (isDiario) {
       const total     = session.total_rounds ?? 6;
@@ -201,131 +184,76 @@ async function loadSessions() {
       const nextRound = current + 1;
       const roundPct  = Math.round((current / total) * 100);
 
-      // Pílulas de rodadas
       const pills = Array.from({ length: total }, (_, i) => {
-        const r    = i + 1;
-        const done = r <= current;
-        const bg   = done ? accentColor : "var(--border)";
-        const fg   = done ? "#1a1208"   : "var(--text-muted)";
-        return `<span style="display:inline-block;min-width:28px;text-align:center;
-                             padding:3px 7px;border-radius:20px;font-size:.7rem;font-weight:700;
-                             background:${bg};color:${fg};">R${r}</span>`;
+        const r = i + 1; const done = r <= current;
+        return `<span style="display:inline-block;min-width:28px;text-align:center;padding:3px 7px;border-radius:20px;font-size:.7rem;font-weight:700;background:${done ? accentColor : "var(--border)"};color:${done ? "#1a1208" : "var(--text-muted)"};">R${r}</span>`;
       }).join("");
 
-      // Botão de gerar próxima rodada
       const btnGerar = current < total
-        ? `<button class="btn-gerar-rodada"
-             data-session-id="${session.id}"
-             data-round="${nextRound}"
-             style="margin-top:10px;background:${accentColor};color:#1a1208;border:none;
-                    font-family:inherit;font-size:.78rem;font-weight:700;
-                    padding:8px 16px;border-radius:var(--radius-sm);cursor:pointer;
-                    transition:opacity .18s;width:auto;">
+        ? `<button class="btn-gerar-rodada" data-session-id="${session.id}" data-round="${nextRound}"
+             style="margin-top:10px;background:${accentColor};color:#1a1208;border:none;font-family:inherit;font-size:.78rem;font-weight:700;padding:8px 16px;border-radius:var(--radius-sm);cursor:pointer;transition:opacity .18s;width:auto;">
              ▶ Gerar Rodada ${nextRound} / ${total}
            </button>`
-        : `<span style="font-size:.8rem;color:var(--green);font-weight:700;
-                        margin-top:10px;display:inline-block;">
-             ✅ Todas as ${total} rodadas geradas
-           </span>`;
+        : `<span style="font-size:.8rem;color:var(--green);font-weight:700;margin-top:10px;display:inline-block;">✅ Todas as ${total} rodadas geradas</span>`;
 
       roundsHtml = `
         <div style="margin-top:12px;">
           <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;">${pills}</div>
           <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
-            <div style="height:100%;width:${roundPct}%;background:${accentColor};
-                        transition:width .4s;border-radius:2px;"></div>
+            <div style="height:100%;width:${roundPct}%;background:${accentColor};transition:width .4s;border-radius:2px;"></div>
           </div>
           ${btnGerar}
         </div>`;
     }
 
-    // ── Botão Gerar Pareamento (quadrimestral / rodada 1 diário) ──
     let actionBtns = "";
     if (!isDiario && isOpen) {
-      actionBtns += `
-        <button class="btn-session-pair btn-gerar-quadrimestral"
-          data-session-id="${session.id}"
-          data-session-label="Dia ${session.session_number}">
-          ⚡ Gerar Pareamento
-        </button>`;
+      actionBtns += `<button class="btn-session-pair btn-gerar-quadrimestral" data-session-id="${session.id}" data-session-label="${sessionLabel}">⚡ Gerar Pareamento</button>`;
     }
     if (isDiario && isOpen && (session.current_round ?? 0) === 0) {
-      actionBtns += `
-        <button class="btn-session-pair btn-gerar-rodada"
-          data-session-id="${session.id}"
-          data-round="1"
-          style="background:var(--yellow);color:#1a1208;">
-          ▶ Gerar Rodada 1
-        </button>`;
+      actionBtns += `<button class="btn-session-pair btn-gerar-rodada" data-session-id="${session.id}" data-round="1" style="background:var(--yellow);color:#1a1208;">▶ Gerar Rodada 1</button>`;
     }
-
-    // ── Botão Encerrar ──────────────────────────────
-    actionBtns += `
-      <button class="btn-session-close btn-encerrar"
-        data-session-id="${session.id}"
-        data-label="${sessionLabel}">
-        ✕ Encerrar
-      </button>`;
+    actionBtns += `<button class="btn-session-close btn-encerrar" data-session-id="${session.id}" data-label="${sessionLabel}">✕ Encerrar</button>`;
 
     const li = document.createElement("li");
     li.className = "session-item";
     li.style.borderLeft = `3px solid ${accentColor}`;
     li.innerHTML = `
       <div class="session-info" style="flex:1;">
-        <div class="session-title">
-          ${typeLabel}
-          <span class="session-num">${sessionLabel}</span>
-          ${statusBadge}
-        </div>
-        <div class="session-meta">
-          📅 ${dateStr}
+        <div class="session-title">${typeLabel}<span class="session-num">${sessionLabel}</span>${statusBadge}</div>
+        <div class="session-meta">📅 ${dateStr}
           <span class="session-spots">
             <span class="spots-count">${count}/${session.max_players}</span> inscritos
-            ${spotsLeft > 0
-              ? `· ${spotsLeft} vagas`
-              : `· <span style="color:#f87171">Lotado</span>`}
+            ${spotsLeft > 0 ? `· ${spotsLeft} vagas` : `· <span style="color:#f87171">Lotado</span>`}
           </span>
         </div>
-        <div class="spots-bar" style="margin-top:6px;">
-          <div class="spots-fill" style="width:${pct}%;background:${accentColor};"></div>
-        </div>
+        <div class="spots-bar" style="margin-top:6px;"><div class="spots-fill" style="width:${pct}%;background:${accentColor};"></div></div>
         ${roundsHtml}
       </div>
-      <div class="session-actions" style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-        ${actionBtns}
-      </div>`;
+      <div class="session-actions" style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">${actionBtns}</div>`;
 
     sessionsList.appendChild(li);
   });
 
-  /* ── Bind: botões Gerar Rodada (diário) ────────── */
+  /* Bind: Gerar Rodada (diário) */
   sessionsList.querySelectorAll(".btn-gerar-rodada").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const sessionId = btn.dataset.sessionId;
-      const round     = Number(btn.dataset.round);
-      await generateRoundDiario(sessionId, round, btn);
+      await generateRoundDiario(btn.dataset.sessionId, Number(btn.dataset.round), btn);
     });
   });
 
-  /* ── Bind: botão Gerar Pareamento (quadrimestral) ─ */
+  /* Bind: Gerar Pareamento (quadrimestral) */
   sessionsList.querySelectorAll(".btn-gerar-quadrimestral").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const sessionId = btn.dataset.sessionId;
-      const label     = btn.dataset.sessionLabel;
-      await generatePairingQuadrimestral(sessionId, label, btn);
+      await generatePairingQuadrimestral(btn.dataset.sessionId, btn.dataset.sessionLabel, btn);
     });
   });
 
-  /* ── Bind: botões Encerrar ─────────────────────── */
+  /* Bind: Encerrar */
   sessionsList.querySelectorAll(".btn-encerrar").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const sessionId = btn.dataset.sessionId;
-      const label     = btn.dataset.label;
-      if (!confirm(`Encerrar "${label}"?\nEsta ação não pode ser desfeita.`)) return;
-      const { error } = await supabase
-        .from("tournament_sessions")
-        .update({ status: "finished" })
-        .eq("id", sessionId);
+      if (!confirm(`Encerrar "${btn.dataset.label}"?\nEsta ação não pode ser desfeita.`)) return;
+      const { error } = await supabase.from("tournament_sessions").update({ status: "finished" }).eq("id", btn.dataset.sessionId);
       if (error) { alert(error.message || "Erro ao encerrar."); return; }
       await loadSessions();
     });
@@ -334,12 +262,12 @@ async function loadSessions() {
 
 /* ══════════════════════════════════════════════════════
    GERAR RODADA — Torneio Aberto
-   Chama generate_round_diario(session_id, round_number)
+   Passa round_number pro email → só envia a rodada atual
 ══════════════════════════════════════════════════════ */
 
 async function generateRoundDiario(sessionId, roundNumber, btn) {
-  const original = btn.textContent;
-  btn.disabled   = true;
+  const original  = btn.textContent;
+  btn.disabled    = true;
   btn.textContent = `⏳ Gerando rodada ${roundNumber}…`;
 
   const { data, error } = await supabase.rpc("generate_round_diario", {
@@ -347,12 +275,10 @@ async function generateRoundDiario(sessionId, roundNumber, btn) {
     p_round_number: roundNumber
   });
 
-  btn.disabled    = false;
-  btn.textContent = original;
-
   if (error || data?.success === false) {
-    const msg = data?.error || error?.message || "Erro desconhecido.";
-    alert(`❌ Erro ao gerar rodada ${roundNumber}:\n${msg}`);
+    btn.disabled    = false;
+    btn.textContent = original;
+    alert(`❌ Erro ao gerar rodada ${roundNumber}:\n${data?.error || error?.message || "Erro desconhecido."}`);
     return;
   }
 
@@ -361,26 +287,23 @@ async function generateRoundDiario(sessionId, roundNumber, btn) {
   const pairings = data.pairings ?? [];
   const byeId    = data.bye_player;
 
-  const lines = pairings.map(p =>
-    `Mesa ${p.board}: ${p.player_white} (${p.rating_white}) × ${p.player_black} (${p.rating_black})`
-  );
+  const lines = pairings.map(p => `Mesa ${p.board}: ${p.player_white} (${p.rating_white}) × ${p.player_black} (${p.rating_black})`);
   if (byeId) lines.push(`⚠️ BYE: um jogador ficou sem par`);
 
-  alert(
-    `✅ Rodada ${roundNumber} / ${total} gerada!\n` +
-    `${players} jogadores · ${pairings.length} mesas\n\n` +
-    lines.join("\n")
-  );
+  alert(`✅ Rodada ${roundNumber} / ${total} gerada!\n${players} jogadores · ${pairings.length} mesas\n\n${lines.join("\n")}`);
 
-  // Disparar notificação por email (não-bloqueante)
-  sendEmailNotification(sessionId);
+  // Email com round_number → filtra só esta rodada
+  btn.textContent = "📧 Enviando emails...";
+  await sendEmailNotification(sessionId, roundNumber);
 
+  btn.disabled    = false;
+  btn.textContent = original;
   await loadSessions();
 }
 
 /* ══════════════════════════════════════════════════════
-   GERAR PAREAMENTO — Quadrimestral (2 rodadas)
-   Chama generate_pairings(p_tournament_session_id)
+   GERAR PAREAMENTO — Quadrimestral (comportamento original)
+   Sem round_number no email → envia todas as rodadas
 ══════════════════════════════════════════════════════ */
 
 async function generatePairingQuadrimestral(sessionId, label, btn) {
@@ -393,30 +316,24 @@ async function generatePairingQuadrimestral(sessionId, label, btn) {
     p_tournament_session_id: sessionId
   });
 
-  btn.disabled    = false;
-  btn.textContent = "⚡ Gerar Pareamento";
-
   if (error || !data?.success) {
+    btn.disabled    = false;
+    btn.textContent = "⚡ Gerar Pareamento";
     alert(error?.message || data?.error || "Erro ao gerar pareamento.");
     return;
   }
 
-  // Enviar emails de notificação
   btn.textContent = "📧 Enviando emails...";
-  btn.disabled    = true;
 
   try {
-    const { data: authSession } = await supabase.auth.getSession();
-    const { data: emailData, error: emailError } = await supabase.functions.invoke(
-      "notify-pairings",
-      {
-        body:    { tournament_session_id: sessionId },
-        headers: { Authorization: `Bearer ${authSession?.session?.access_token}` }
-      }
-    );
+    const { data: authData } = await supabase.auth.getSession();
+    const { data: emailData, error: emailError } = await supabase.functions.invoke("notify-pairings", {
+      body:    { tournament_session_id: sessionId }, // sem round_number → todas as rodadas
+      headers: { Authorization: `Bearer ${authData?.session?.access_token}` }
+    });
 
     if (emailError) {
-      alert(`✅ Pareamento gerado!\n⚠️ Problema ao enviar emails. Verifique o console.`);
+      alert(`✅ Pareamento gerado!\n⚠️ Problema ao enviar emails.`);
     } else {
       const sent   = emailData?.sent ?? 0;
       const failed = (emailData?.results ?? []).filter(r => r.status !== "enviado").length;
@@ -431,19 +348,23 @@ async function generatePairingQuadrimestral(sessionId, label, btn) {
 
   btn.disabled    = false;
   btn.textContent = "⚡ Gerar Pareamento";
-
   await loadSessions();
 }
 
 /* ══════════════════════════════════════════════════════
-   SEND EMAIL NOTIFICATION (não-bloqueante)
+   SEND EMAIL NOTIFICATION
+   roundNumber = número da rodada (diário) ou null (quadrimestral)
 ══════════════════════════════════════════════════════ */
 
-async function sendEmailNotification(sessionId) {
+async function sendEmailNotification(sessionId, roundNumber = null) {
   try {
     const { data: authData } = await supabase.auth.getSession();
+    const body = roundNumber !== null
+      ? { tournament_session_id: sessionId, round_number: roundNumber }
+      : { tournament_session_id: sessionId };
+
     await supabase.functions.invoke("notify-pairings", {
-      body:    { tournament_session_id: sessionId },
+      body,
       headers: { Authorization: `Bearer ${authData?.session?.access_token}` }
     });
   } catch (e) {
