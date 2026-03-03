@@ -24,8 +24,6 @@
 
     <!-- ══════════════════════════════════════
          SEÇÃO 1 — REGISTRO DE RESULTADOS
-         O árbitro seleciona o dia ativo e
-         registra os resultados pelos cards
     ══════════════════════════════════════ -->
     <section class="admin-section">
       <h2 class="section-title">Registro de Resultados</h2>
@@ -56,9 +54,6 @@
 
     <!-- ══════════════════════════════════════
          SEÇÃO 3 — GERENCIAR TORNEIOS
-         Separado em duas subseções:
-         A) Novo dia (quadrimestral)
-         B) Novo torneio aberto (diário)
     ══════════════════════════════════════ -->
     <section class="admin-section">
       <h2 class="section-title">Gerenciar Torneios</h2>
@@ -108,7 +103,7 @@
       <div class="admin-subpanel" id="subpanel-diario">
         <p class="subpanel-desc">
           Cria um <strong>torneio aberto</strong> independente (sábados, público geral).<br>
-          <span style="color:var(--text-muted);font-size:.82rem;">Tem check-in, pareamento e resultados próprios.</span>
+          <span style="color:var(--text-muted);font-size:.82rem;">Tem check-in, pareamento por rodada e resultados próprios.</span>
         </p>
 
         <fieldset class="admin-fieldset">
@@ -127,6 +122,10 @@
             <label class="field-label">
               Máx. Jogadores
               <input type="number" id="diario-max-players" class="admin-input" value="24" min="2" max="80">
+            </label>
+            <label class="field-label">
+              Nº de Rodadas
+              <input type="number" id="diario-total-rounds" class="admin-input" value="6" min="1" max="15">
             </label>
           </div>
           <button type="button" id="btn-create-diario" class="btn-primary btn-yellow">
@@ -148,7 +147,7 @@
 
   </div>
 
-  <!-- ── Modal de confirmação ── -->
+  <!-- ── Modal de confirmação de resultado ── -->
   <div id="result-modal" class="modal-overlay" style="display:none;">
     <div class="modal-box">
       <div class="modal-title" id="modal-title">Confirmar resultado</div>
