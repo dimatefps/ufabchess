@@ -254,6 +254,7 @@ async function renderProfileView(player, user) {
   });
 
   grid.addEventListener("click", async (e) => {
+
     /* ── Confirmar presença ── */
     if (e.target.id === "btn-checkin") {
       const btn       = e.target;
@@ -265,7 +266,9 @@ async function renderProfileView(player, user) {
         btn.disabled = false; btn.textContent = "Confirmar presença";
         alert(error.code === "23505" ? "Você já está confirmado neste torneio." : (error.message || "Erro ao confirmar presença."));
       } else {
+        const scrollY = window.scrollY;                    // ← salvar
         await renderProfileView(player, currentUser);
+        window.scrollTo({ top: scrollY, behavior: "instant" }); // ← restaurar
       }
     }
 
@@ -273,6 +276,7 @@ async function renderProfileView(player, user) {
     if (e.target.id === "btn-cancel-checkin") {
       const btn       = e.target;
       const sessionId = btn.dataset.weekId;
+      if (!confirm("Deseja cancelar sua presença neste torneio?")) return;
       btn.disabled = true; btn.textContent = "Cancelando...";
       const { error } = await supabase.from("tournament_checkins")
         .delete().eq("tournament_session_id", sessionId).eq("player_id", player.id);
@@ -280,7 +284,9 @@ async function renderProfileView(player, user) {
         btn.disabled = false; btn.textContent = "Cancelar presença";
         alert(error.message || "Erro ao cancelar presença.");
       } else {
+        const scrollY = window.scrollY;                    // ← salvar
         await renderProfileView(player, currentUser);
+        window.scrollTo({ top: scrollY, behavior: "instant" }); // ← restaurar
       }
     }
 
@@ -617,22 +623,35 @@ document.getElementById("btn-send-reset")?.addEventListener("click", async () =>
    ═══════════════════════════════════════════ */
 
 document.getElementById("btn-save-password")?.addEventListener("click", async () => {
-  const pwd     = document.getElementById("new-password").value;
-  const confirm = document.getElementById("confirm-password").value;
-  const msgEl   = document.getElementById("password-message");
+  const pwd     = document.getElementById("new-pwd").value;           // ← era "new-password"
+  const confirm = document.getElementById("new-pwd-confirm").value;   // ← era "confirm-password"
+  const msgEl   = document.getElementById("new-pwd-message");         // ← era "password-message"
   const btn     = document.getElementById("btn-save-password");
-  if (!pwd || pwd.length < 6) { msgEl.style.color = "#e88"; msgEl.textContent = "A senha deve ter pelo menos 6 caracteres."; return; }
-  if (pwd !== confirm)        { msgEl.style.color = "#e88"; msgEl.textContent = "As senhas não coincidem."; return; }
+
+  if (!pwd || pwd.length < 6) {
+    msgEl.style.color = "#e88";
+    msgEl.textContent = "A senha deve ter pelo menos 6 caracteres.";
+    return;
+  }
+  if (pwd !== confirm) {
+    msgEl.style.color = "#e88";
+    msgEl.textContent = "As senhas não coincidem.";
+    return;
+  }
+
   btn.disabled = true; btn.textContent = "Salvando...";
   const { error } = await supabase.auth.updateUser({ password: pwd });
   btn.disabled = false; btn.textContent = "Salvar nova senha";
-  if (error) { msgEl.style.color = "#e88"; msgEl.textContent = error.message || "Erro ao salvar senha."; }
-  else {
-    msgEl.style.color = "#22c55e"; msgEl.textContent = "✅ Senha redefinida!";
+
+  if (error) {
+    msgEl.style.color = "#e88";
+    msgEl.textContent = error.message || "Erro ao salvar senha.";
+  } else {
+    msgEl.style.color = "#22c55e";
+    msgEl.textContent = "✅ Senha redefinida com sucesso!";
     setTimeout(() => { isRecoveryMode = false; init(); }, 1500);
   }
 });
-
 /* ═══════════════════════════════════════════
    AUTH — Signup
    ═══════════════════════════════════════════ */
