@@ -39,12 +39,10 @@ function goToAuth() {
   const formLogin  = document.getElementById("form-login");
   const formSignup = document.getElementById("form-signup");
   if (formLogin)  formLogin.style.display  = "block";
-  if (formSignup) formSignup.style.display = "none";
-  const signupForm = document.getElementById("form-signup");
-  if (signupForm) signupForm.reset();
-  document.querySelectorAll(".form-error, .form-success").forEach(el => el.classList.remove("visible"));
+  if (formSignup) { formSignup.style.display = "none"; formSignup.reset(); } // FIX #8: sem duplicar getElementById
   const resetBox = document.getElementById("reset-box");
   if (resetBox) resetBox.style.display = "none";
+  document.querySelectorAll(".form-error, .form-success").forEach(el => el.classList.remove("visible"));
   showState("auth");
 }
 
@@ -67,6 +65,15 @@ let isEmailConfirmMode = _urlType === "signup";
 if (isRecoveryMode)     showState("new-password");
 if (isEmailConfirmMode) showState("loading");
 
+// FIX #6: Fallback timeout — se o spinner ainda estiver ativo após 8s, vai para login
+setTimeout(() => {
+  const loadingEl = document.getElementById("state-loading");
+  if (loadingEl?.classList.contains("active")) {
+    console.warn("Timeout de loading — redirecionando para auth.");
+    goToAuth();
+  }
+}, 8000);
+
 /* ═══════════════════════════════════════════
    AUTH STATE CHANGE
    ═══════════════════════════════════════════ */
@@ -79,10 +86,22 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     showState("new-password");
     return;
   }
-  if (event === "SIGNED_IN" && session && !isRecoveryMode && isEmailConfirmMode) {
+
+  // FIX #1: usar session.user.email_confirmed_at direto do evento (mais confiável que getUser())
+  if (event === "SIGNED_IN" && session?.user?.email_confirmed_at && !isRecoveryMode) {
     isEmailConfirmMode = false;
     if (!_initRunning) await init();
+    return;
   }
+
+  // Usuário confirmou email mas sessão ainda não tem email_confirmed_at — mostrar verify
+  if (event === "SIGNED_IN" && session && !session.user?.email_confirmed_at && !isRecoveryMode) {
+    currentUser = session.user;
+    document.getElementById("verify-email-display").textContent = session.user.email;
+    showState("verify");
+    return;
+  }
+
   if (event === "SIGNED_OUT") {
     currentUser = null; matchedPlayer = null; myPlayer = null; ownChart = null;
     if (window._gridAbortController) {
@@ -204,32 +223,29 @@ async function renderProfileView(player, user) {
       <div class="stat-label">Partidas Jogadas</div>
     </div>
 
-    <!-- Tabs de navegação — 2 abas -->
-    <div class="profile-section-tabs">
-      <button class="psec-tab active" data-tab="progresso">📈 Progresso</button>
-      <button class="psec-tab" data-tab="torneios">♟️ Torneios</button>
-    </div>
-
-    <!-- Painel: Progresso -->
-    <div class="psec-panel active" id="psec-progresso">
-      <div class="chart-card">
-        <div class="chart-header">
-          <div class="card-title" style="margin-bottom:0;">Evolução do Rating</div>
-          <div class="chart-tc-tabs">
-            <button class="tc-tab active" data-tc="rapid">Rapid</button>
-            <button class="tc-tab" data-tc="blitz">Blitz</button>
-            <button class="tc-tab" data-tc="standard">Standard</button>
-          </div>
+    <!-- Gráfico de evolução -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="card-title" style="margin:0;">Evolução do Rating</span>
+        <div class="chart-tc-tabs">
+          <button class="tc-tab active" data-tc="rapid">Rápidas</button>
         </div>
-        <div class="chart-canvas-wrap"><canvas id="rating-chart-own"></canvas></div>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="rating-chart-own"></canvas>
         <div id="chart-own-empty" class="chart-empty" style="display:none;">
-          Nenhuma partida registrada nesta modalidade ainda.
+          Nenhuma partida registrada ainda.
         </div>
       </div>
     </div>
 
+    <!-- Tabs de seção -->
+    <div class="profile-section-tabs">
+      <button class="psec-tab active" data-tab="torneios">Torneios</button>
+    </div>
+
     <!-- Painel: Torneios (quadrimestral + aberto unificados) -->
-    <div class="psec-panel" id="psec-torneios">
+    <div class="psec-panel active" id="psec-torneios">
       <div style="color:var(--text-muted);font-size:.88rem;padding:24px 0;">Carregando...</div>
     </div>
 
@@ -254,7 +270,6 @@ async function renderProfileView(player, user) {
   });
 
   grid.addEventListener("click", async (e) => {
-
     /* ── Confirmar presença ── */
     if (e.target.id === "btn-checkin") {
       const btn       = e.target;
@@ -266,9 +281,10 @@ async function renderProfileView(player, user) {
         btn.disabled = false; btn.textContent = "Confirmar presença";
         alert(error.code === "23505" ? "Você já está confirmado neste torneio." : (error.message || "Erro ao confirmar presença."));
       } else {
-        const scrollY = window.scrollY;                    // ← salvar
+        // FIX: salvar e restaurar scroll para não voltar pro topo
+        const scrollY = window.scrollY;
         await renderProfileView(player, currentUser);
-        window.scrollTo({ top: scrollY, behavior: "instant" }); // ← restaurar
+        window.scrollTo({ top: scrollY, behavior: "instant" });
       }
     }
 
@@ -284,9 +300,10 @@ async function renderProfileView(player, user) {
         btn.disabled = false; btn.textContent = "Cancelar presença";
         alert(error.message || "Erro ao cancelar presença.");
       } else {
-        const scrollY = window.scrollY;                    // ← salvar
+        // FIX: salvar e restaurar scroll para não voltar pro topo
+        const scrollY = window.scrollY;
         await renderProfileView(player, currentUser);
-        window.scrollTo({ top: scrollY, behavior: "instant" }); // ← restaurar
+        window.scrollTo({ top: scrollY, behavior: "instant" });
       }
     }
 
@@ -367,7 +384,6 @@ function renderOwnChart(tc) {
 
 /* ═══════════════════════════════════════════
    PAINEL TORNEIOS — quadrimestral + aberto
-   Quadrimestral primeiro, depois abertos
    ═══════════════════════════════════════════ */
 
 async function buildTorneiosPanel(panelId, player) {
@@ -376,24 +392,17 @@ async function buildTorneiosPanel(panelId, player) {
 
   const { data: sessions } = await supabase
     .from("tournament_sessions")
-    .select(`
-      id, tournament_id, session_number, match_date, match_time,
-      max_players, status,
-      tournaments ( name, edition, type )
-    `)
+    .select(`id, tournament_id, session_number, match_date, match_time, max_players, status, tournaments ( name, edition, type )`)
     .in("status", ["open", "in_progress"])
     .order("match_date", { ascending: true });
 
-  // Separar e ordenar: quadrimestral primeiro, depois abertos
   const quad   = (sessions ?? []).filter(s => s.tournaments?.type === "quadrimestral");
   const diario = (sessions ?? []).filter(s => s.tournaments?.type === "diario");
   const all    = [...quad, ...diario];
 
   if (!all.length) {
     panel.innerHTML = `
-      <div style="text-align:center;padding:48px 20px;
-                  background:var(--bg-card);border:1px dashed var(--border);
-                  border-radius:var(--radius-md);">
+      <div style="text-align:center;padding:48px 20px;background:var(--bg-card);border:1px dashed var(--border);border-radius:var(--radius-md);">
         <div style="font-size:2rem;margin-bottom:12px;">♟️</div>
         <p style="color:var(--text-muted);font-size:.9rem;">Nenhum torneio aberto para inscrição no momento.</p>
       </div>`;
@@ -406,9 +415,6 @@ async function buildTorneiosPanel(panelId, player) {
 
 /* ═══════════════════════════════════════════
    BUILD SESSION CARD
-   — barra de progresso de ocupação
-   — lista de inscritos colapsável (oculta por padrão)
-   — cores por tipo: verde=quadrimestral, amarelo=aberto
    ═══════════════════════════════════════════ */
 
 async function buildSessionCard(session, player) {
@@ -418,15 +424,14 @@ async function buildSessionCard(session, player) {
     .eq("tournament_session_id", session.id)
     .order("checked_in_at", { ascending: true });
 
-  const checkinList    = checkins ?? [];
-  const isCheckedIn    = checkinList.some(c => c.player_id === player.id);
-  const isDiario       = session.tournaments?.type === "diario";
+  const checkinList = checkins ?? [];
+  const isCheckedIn = checkinList.some(c => c.player_id === player.id);
+  const isDiario    = session.tournaments?.type === "diario";
 
-  // Quadrimestral = verde  |  Aberto = amarelo (igual à página de torneios)
-  const accentColor    = isDiario ? "var(--yellow)" : "var(--green)";
-  const accentText     = isDiario ? "#1a1208"       : "#052e16";
-  const typeIcon       = isDiario ? "🎯" : "🏆";
-  const typeLabel      = isDiario ? "Torneio Aberto" : "Quadrimestral";
+  const accentColor = isDiario ? "var(--yellow)" : "var(--green)";
+  const accentText  = isDiario ? "#1a1208"       : "#052e16";
+  const typeIcon    = isDiario ? "🎯" : "🏆";
+  const typeLabel   = isDiario ? "Torneio Aberto" : "Quadrimestral";
 
   const tournamentName = session.tournaments?.name || "Torneio";
   const edition        = session.tournaments?.edition ? ` · Edição ${session.tournaments.edition}` : "";
@@ -434,15 +439,15 @@ async function buildSessionCard(session, player) {
     ? `${typeIcon} ${typeLabel} — ${tournamentName}${edition}`
     : `${typeIcon} ${typeLabel} — Dia ${session.session_number} · ${tournamentName}${edition}`;
 
-  const dateStr        = formatDate(session.match_date);
-  const timeStr        = session.match_time?.slice(0, 5) || "18:15";
-  const spotsLeft      = session.max_players - checkinList.length;
-  const pct            = Math.min(100, Math.round((checkinList.length / session.max_players) * 100));
+  const dateStr       = formatDate(session.match_date);
+  const timeStr       = session.match_time?.slice(0, 5) || "18:15";
+  const spotsLeft     = session.max_players - checkinList.length;
+  const pct           = Math.min(100, Math.round((checkinList.length / session.max_players) * 100));
 
-  const matchDateTime  = new Date(`${session.match_date}T${session.match_time || "18:15:00"}`);
-  const deadline       = new Date(matchDateTime.getTime() - 3 * 60 * 60 * 1000);
+  const matchDateTime = new Date(`${session.match_date}T${session.match_time || "18:15:00"}`);
+  const deadline      = new Date(matchDateTime.getTime() - 3 * 60 * 60 * 1000);
   const deadlinePassed = new Date() > deadline;
-  const deadlineStr    = deadline.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const deadlineStr   = deadline.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   let actionHtml;
   if (isCheckedIn) {
@@ -463,29 +468,25 @@ async function buildSessionCard(session, player) {
     actionHtml = `<span style="font-size:.82rem;color:#e88;">Vagas esgotadas</span>`;
   } else {
     actionHtml = `<button id="btn-checkin" class="btn-primary" data-week-id="${session.id}"
-      style="white-space:nowrap;padding:10px 20px;
-             background:${accentColor};color:${accentText};border-color:${accentColor};">
+      style="white-space:nowrap;padding:10px 20px;background:${accentColor};color:${accentText};border-color:${accentColor};">
       Confirmar presença
     </button>`;
   }
 
-  // Lista de inscritos (montada mas oculta por padrão)
   const listHtml = checkinList.length
     ? checkinList.map((c, i) => {
         const b = getTitleBadge(c.players?.rating_rapid, c.players?.games_played_rapid);
-        return `
-          <div class="checkin-player" style="animation-delay:${i * 40}ms">
-            <span class="cp-pos">${i + 1}</span>
-            <span class="cp-name">${b}${c.players?.full_name || "?"}</span>
-            <span class="cp-rating">${c.players?.rating_rapid || "-"}</span>
-          </div>`;
+        return `<div class="checkin-player" style="animation-delay:${i * 40}ms">
+          <span class="cp-pos">${i + 1}</span>
+          <span class="cp-name">${b}${c.players?.full_name || "?"}</span>
+          <span class="cp-rating">${c.players?.rating_rapid || "-"}</span>
+        </div>`;
       }).join("")
     : `<div style="padding:14px;color:var(--text-muted);font-size:.85rem;">Nenhum jogador confirmado ainda.</div>`;
 
   return `
     <div class="checkin-card" style="border-left:3px solid ${accentColor};margin-bottom:16px;">
-      <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;
-                  letter-spacing:.7px;color:${accentColor};margin-bottom:12px;">
+      <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:${accentColor};margin-bottom:12px;">
         ${sessionLabel}
       </div>
       <div class="checkin-event">
@@ -495,23 +496,18 @@ async function buildSessionCard(session, player) {
             <strong>${checkinList.length}</strong> / ${session.max_players} confirmados ·
             ${spotsLeft > 0 ? `${spotsLeft} vagas restantes` : "Lotado"}
           </p>
-          ${!deadlinePassed
-            ? `<p style="font-size:.76rem;color:var(--text-muted);margin-top:2px;">Prazo: até ${deadlineStr}</p>`
-            : ""}
+          ${!deadlinePassed ? `<p style="font-size:.76rem;color:var(--text-muted);margin-top:2px;">Prazo: até ${deadlineStr}</p>` : ""}
         </div>
         <div>${actionHtml}</div>
       </div>
 
       <!-- Barra de progresso de ocupação -->
-      <div style="margin-top:14px;"
-           title="${checkinList.length} de ${session.max_players} vagas preenchidas (${pct}%)">
+      <div style="margin-top:14px;" title="${checkinList.length} de ${session.max_players} vagas (${pct}%)">
         <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:${accentColor};
-                      border-radius:3px;transition:width .6s ease;"></div>
+          <div style="height:100%;width:${pct}%;background:${accentColor};border-radius:3px;transition:width .6s ease;"></div>
         </div>
       </div>
 
-      <!-- Botão para expandir lista de inscritos (oculto por padrão) -->
       ${checkinList.length > 0 ? `
       <div style="margin-top:10px;">
         <button class="btn-ver-inscritos"
@@ -528,35 +524,6 @@ async function buildSessionCard(session, player) {
         </div>
       </div>` : ""}
     </div>`;
-}
-
-/* ═══════════════════════════════════════════
-   BUILD CHECK-IN SECTION (legado — mantido)
-   ═══════════════════════════════════════════ */
-
-async function buildCheckinSection(player) {
-  const { data: sessions } = await supabase
-    .from("tournament_sessions")
-    .select(`
-      id, tournament_id, session_number, match_date, match_time,
-      max_players, status,
-      tournaments ( name, edition, type )
-    `)
-    .in("status", ["open", "in_progress"])
-    .order("match_date", { ascending: true });
-
-  if (!sessions || sessions.length === 0) {
-    return `
-      <div class="checkin-card">
-        <div class="card-title">Próximo Torneio</div>
-        <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:.9rem;">
-          Nenhum torneio aberto para inscrição no momento.
-        </div>
-      </div>`;
-  }
-
-  const cards = await Promise.all(sessions.map(s => buildSessionCard(s, player)));
-  return cards.join("");
 }
 
 /* ═══════════════════════════════════════════
@@ -578,11 +545,12 @@ document.querySelectorAll(".auth-tab").forEach(tab => {
 
 /* ═══════════════════════════════════════════
    AUTH — Login
+   FIX #2: não chama init() diretamente — deixa o onAuthStateChange fazer isso
    ═══════════════════════════════════════════ */
 
 document.getElementById("form-login").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const errorEl = document.getElementById("login-error");
+  const errorEl  = document.getElementById("login-error");
   errorEl.classList.remove("visible");
   const email    = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
@@ -590,12 +558,11 @@ document.getElementById("form-login").addEventListener("submit", async (e) => {
   const btn = e.target.querySelector("button[type=submit]");
   btn.disabled = true; btn.textContent = "Entrando...";
   const { error } = await supabase.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = "Entrar";
   if (error) {
     showError(errorEl, "Email ou senha inválidos.");
-    btn.disabled = false; btn.textContent = "Entrar";
-    return;
   }
-  await init();
+  // FIX #2: NÃO chama init() aqui — o onAuthStateChange SIGNED_IN vai chamá-lo automaticamente
 });
 
 /* ═══════════════════════════════════════════
@@ -620,38 +587,26 @@ document.getElementById("btn-send-reset")?.addEventListener("click", async () =>
 
 /* ═══════════════════════════════════════════
    AUTH — Nova senha (recovery mode)
+   FIX: IDs corrigidos para bater com o HTML (new-pwd / new-pwd-confirm / new-pwd-message)
    ═══════════════════════════════════════════ */
 
 document.getElementById("btn-save-password")?.addEventListener("click", async () => {
-  const pwd     = document.getElementById("new-pwd").value;           // ← era "new-password"
-  const confirm = document.getElementById("new-pwd-confirm").value;   // ← era "confirm-password"
-  const msgEl   = document.getElementById("new-pwd-message");         // ← era "password-message"
+  const pwd     = document.getElementById("new-pwd").value;           // FIX: era "new-password"
+  const confirm = document.getElementById("new-pwd-confirm").value;   // FIX: era "confirm-password"
+  const msgEl   = document.getElementById("new-pwd-message");         // FIX: era "password-message"
   const btn     = document.getElementById("btn-save-password");
-
-  if (!pwd || pwd.length < 6) {
-    msgEl.style.color = "#e88";
-    msgEl.textContent = "A senha deve ter pelo menos 6 caracteres.";
-    return;
-  }
-  if (pwd !== confirm) {
-    msgEl.style.color = "#e88";
-    msgEl.textContent = "As senhas não coincidem.";
-    return;
-  }
-
+  if (!pwd || pwd.length < 6) { msgEl.style.color = "#e88"; msgEl.textContent = "A senha deve ter pelo menos 6 caracteres."; return; }
+  if (pwd !== confirm)        { msgEl.style.color = "#e88"; msgEl.textContent = "As senhas não coincidem."; return; }
   btn.disabled = true; btn.textContent = "Salvando...";
   const { error } = await supabase.auth.updateUser({ password: pwd });
   btn.disabled = false; btn.textContent = "Salvar nova senha";
-
-  if (error) {
-    msgEl.style.color = "#e88";
-    msgEl.textContent = error.message || "Erro ao salvar senha.";
-  } else {
-    msgEl.style.color = "#22c55e";
-    msgEl.textContent = "✅ Senha redefinida com sucesso!";
+  if (error) { msgEl.style.color = "#e88"; msgEl.textContent = error.message || "Erro ao salvar senha."; }
+  else {
+    msgEl.style.color = "#22c55e"; msgEl.textContent = "✅ Senha redefinida com sucesso!";
     setTimeout(() => { isRecoveryMode = false; init(); }, 1500);
   }
 });
+
 /* ═══════════════════════════════════════════
    AUTH — Signup
    ═══════════════════════════════════════════ */
@@ -676,7 +631,10 @@ document.getElementById("form-signup")?.addEventListener("submit", async (e) => 
   });
   btn.disabled = false; btn.textContent = "Criar conta";
   if (error) { showError(errorEl, translateError(error.message)); }
-  else { document.getElementById("verify-email-display").textContent = email; showState("verify"); }
+  else {
+    document.getElementById("verify-email-display").textContent = email;
+    showState("verify");
+  }
 });
 
 /* ═══════════════════════════════════════════
@@ -700,6 +658,7 @@ window.resendVerification = async function () {
 
 /* ═══════════════════════════════════════════
    VINCULAR CONTA
+   FIX #3: re-fetch currentUser antes de checkPlayerProfile
    ═══════════════════════════════════════════ */
 
 document.getElementById("btn-link-confirm")?.addEventListener("click", async () => {
@@ -716,7 +675,10 @@ document.getElementById("btn-link-confirm")?.addEventListener("click", async () 
     return;
   }
   matchedPlayer = null;
-  await checkPlayerProfile(currentUser);
+  // FIX #3: buscar usuário atualizado em vez de usar o objeto em memória
+  const { data: { user: freshUser } } = await supabase.auth.getUser();
+  if (freshUser) { currentUser = freshUser; await checkPlayerProfile(freshUser); }
+  else goToAuth();
 });
 
 document.getElementById("btn-link-deny")?.addEventListener("click", () => {
@@ -725,6 +687,7 @@ document.getElementById("btn-link-deny")?.addEventListener("click", () => {
 
 /* ═══════════════════════════════════════════
    REGISTER
+   FIX #5: ano de nascimento ampliado para 1930
    ═══════════════════════════════════════════ */
 
 document.getElementById("form-register")?.addEventListener("submit", async (e) => {
@@ -738,18 +701,26 @@ document.getElementById("form-register")?.addEventListener("submit", async (e) =
   const ra        = document.getElementById("reg-ra").value.trim() || null;
   const level     = document.getElementById("reg-level").value;
   if (!fullName)  { showError(errorEl, "Preencha seu nome completo."); return; }
-  if (!birthYear || birthYear < 1950 || birthYear > 2015) { showError(errorEl, "Preencha um ano de nascimento válido."); return; }
+  if (!birthYear || birthYear < 1930 || birthYear > 2015) { // FIX #5: era 1950
+    showError(errorEl, "Preencha um ano de nascimento válido (1930–2015)."); return;
+  }
   if (!gender)    { showError(errorEl, "Selecione seu gênero."); return; }
   if (!phone)     { showError(errorEl, "Preencha seu telefone."); return; }
   if (!level)     { showError(errorEl, "Selecione seu nível de jogo."); return; }
-  if (!currentUser?.email_confirmed_at) { showError(errorEl, "Confirme seu email antes de criar o perfil."); return; }
+  if (!currentUser?.email_confirmed_at) {
+    showError(errorEl, "Confirme seu email antes de criar o perfil."); return;
+  }
   const startingRating = RATING_BY_LEVEL[level] ?? 1400;
   const btn = e.target.querySelector("button[type=submit]");
   btn.disabled = true; btn.textContent = "Cadastrando...";
   const { error } = await supabase.from("players").insert({
-    full_name: fullName, email: currentUser.email.toLowerCase().trim(),
-    user_id: currentUser.id, birth_year: birthYear, gender, phone, ra, level,
-    rating_rapid: startingRating, games_played_rapid: 0
+    full_name: fullName,
+    email:     currentUser.email.toLowerCase().trim(),
+    user_id:   currentUser.id,
+    birth_year: birthYear,
+    gender, phone, ra, level,
+    rating_rapid:       startingRating,
+    games_played_rapid: 0
   });
   if (error) {
     let msg = error.message || "Erro ao cadastrar.";
