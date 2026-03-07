@@ -6,6 +6,7 @@ import { supabase } from "../../scripts/services/supabase.js";
 const { data: { user }, error: userError } = await supabase.auth.getUser();
 if (userError || !user) {
   window.location.href = "../pages/admin-login.html";
+  throw new Error("unauthenticated"); // ← FIX 1: para execução do módulo
 }
 
 const { data: referee, error: refereeError } = await supabase
@@ -18,6 +19,7 @@ if (refereeError || !referee) {
   alert("Acesso negado");
   await supabase.auth.signOut();
   window.location.href = "../pages/admin-login.html";
+  throw new Error("unauthorized"); // ← FIX 1: para execução do módulo
 }
 
 const refereeId   = user.id;
@@ -32,10 +34,10 @@ document.getElementById("logout").addEventListener("click", async () => {
 /* ══════════════════════════════════════════════
    STATE
    ══════════════════════════════════════════════ */
-let currentSession    = null;   // objeto tournament_sessions
+let currentSession    = null;
 let currentRound      = 1;
-let allPairings       = [];     // todos os pairings da sessão atual
-let registeredMatches = {};     // { "whiteId_blackId": matchObj }
+let allPairings       = [];
+let registeredMatches = {};
 
 /* ══════════════════════════════════════════════
    INIT — carregar sessões abertas
@@ -62,17 +64,17 @@ async function init() {
 
   select.innerHTML = `<option value="">Selecione o torneio do dia</option>`;
   sessions.forEach(s => {
-    const t   = s.tournaments;
+    const t    = s.tournaments;
     const name = t?.edition ? `${t.name} • Ed. ${t.edition}` : (t?.name ?? "Torneio");
     const date = formatDate(s.match_date);
     const opt  = document.createElement("option");
     opt.value       = s.id;
-    opt.textContent = `Torneio ${s.session_number} — ${name} (${date})`;
+    opt.textContent = `${name} — ${date}`;
     opt._session    = s;
     select.appendChild(opt);
   });
 
-  // Se só houver uma, selecionar automaticamente
+  // Selecionar automaticamente se só houver uma
   if (sessions.length === 1) {
     select.value = sessions[0].id;
     await onSessionChange(sessions[0]);
@@ -80,16 +82,7 @@ async function init() {
 
   select.addEventListener("change", async () => {
     const opt = select.options[select.selectedIndex];
-    if (!opt._session) return;
-    await onSessionChange(opt._session);
-  });
-
-  // Armazenar referência para o event listener
-  select._sessions = sessions;
-  select.addEventListener("change", async () => {
-    const sid = select.value;
-    const s   = sessions.find(x => x.id === sid);
-    if (s) await onSessionChange(s);
+    if (opt._session) await onSessionChange(opt._session);
   });
 }
 
@@ -105,7 +98,6 @@ async function onSessionChange(session) {
   document.getElementById("round-tabs").style.display = "none";
   document.getElementById("cards-empty").style.display = "none";
 
-  // 1) Buscar pairings desta sessão (com dados dos jogadores)
   const { data: pairings, error: pErr } = await supabase
     .from("pairings")
     .select(`
@@ -127,36 +119,44 @@ async function onSessionChange(session) {
 
   allPairings = pairings;
 
-  // 2) Buscar partidas já registradas para este tournament_id + rodadas presentes
-  await refreshRegisteredMatches(session.tournament_id);
-
-  // 3) Montar tabs de rodada
   const rounds = [...new Set(pairings.map(p => p.round_number))].sort((a, b) => a - b);
   buildRoundTabs(rounds);
 
-  // 4) Renderizar cards da primeira rodada
+  // ← FIX 2: passa session.id além de tournament_id para filtrar por sessão
+  await refreshRegisteredMatches(session.id, session.tournament_id);
   renderCards(currentRound);
+  await loadRecentMatches();
 }
 
 /* ══════════════════════════════════════════════
-   BUSCAR PARTIDAS JÁ REGISTRADAS
+   REFRESH REGISTERED MATCHES
+   FIX 2: filtra por session_id para não mostrar
+   resultados de sessões anteriores do mesmo torneio
    ══════════════════════════════════════════════ */
-async function refreshRegisteredMatches(tournamentId) {
-  registeredMatches = {};
+async function refreshRegisteredMatches(sessionId, tournamentId) {
+  // Busca pairings desta sessão específica para saber quais chaves são válidas
+  const { data: sessionPairings } = await supabase
+    .from("pairings")
+    .select("player_white, player_black, round_number")
+    .eq("tournament_session_id", sessionId);
 
-  const rounds = [...new Set(allPairings.map(p => p.round_number))];
-  if (!rounds.length) return;
+  const sessionKeys = new Set(
+    (sessionPairings ?? []).map(p => `${p.round_number}__${p.player_white}__${p.player_black}`)
+  );
 
-  const { data: matches } = await supabase
+  // Busca matches do torneio
+  const { data, error } = await supabase
     .from("matches")
-    .select("id, round_number, player_white, player_black, result_white, result_black, is_walkover")
-    .eq("tournament_id", tournamentId)
-    .in("round_number", rounds);
+    .select(`id, round_number, result_white, result_black, is_walkover, player_white, player_black`)
+    .eq("tournament_id", tournamentId);
 
-  (matches ?? []).forEach(m => {
-    // Chave bidirecional para lookup fácil
+  registeredMatches = {};
+  (data ?? []).forEach(m => {
     const key = `${m.round_number}__${m.player_white}__${m.player_black}`;
-    registeredMatches[key] = m;
+    // Só inclui se o pairing pertence à sessão atual
+    if (sessionKeys.has(key)) {
+      registeredMatches[key] = m;
+    }
   });
 }
 
@@ -195,7 +195,6 @@ function renderCards(round) {
 
   grid.innerHTML = pairings.map(p => buildCard(p)).join("");
 
-  // Listeners dos botões de resultado
   grid.querySelectorAll(".result-btn[data-pairing]").forEach(btn => {
     btn.addEventListener("click", () => {
       const pairingId = btn.dataset.pairing;
@@ -205,7 +204,6 @@ function renderCards(round) {
     });
   });
 
-  // Listener do rollback nos cards já registrados
   grid.querySelectorAll(".btn-rollback").forEach(btn => {
     btn.addEventListener("click", async () => {
       const matchId = btn.dataset.match;
@@ -221,7 +219,6 @@ function buildCard(pairing) {
   const white = pairing.pw;
   const black = pairing.pb;
 
-  // BYE
   if (!black) {
     return `
       <div class="match-card bye-card">
@@ -234,8 +231,7 @@ function buildCard(pairing) {
       </div>`;
   }
 
-  // Verificar se já registrado
-  const regKey = `${pairing.round_number}__${white.id}__${black.id}`;
+  const regKey   = `${pairing.round_number}__${white.id}__${black.id}`;
   const regMatch = registeredMatches[regKey];
 
   if (regMatch) {
@@ -265,21 +261,11 @@ function buildCard(pairing) {
       </div>
 
       <div class="result-buttons">
-        <button class="result-btn btn-white-win"  data-pairing="${pairing.id}" data-result="1-0">
-          1 – 0
-        </button>
-        <button class="result-btn btn-draw"        data-pairing="${pairing.id}" data-result="0.5-0.5">
-          ½ – ½
-        </button>
-        <button class="result-btn btn-black-win"  data-pairing="${pairing.id}" data-result="0-1">
-          0 – 1
-        </button>
-        <button class="result-btn btn-wo-white"   data-pairing="${pairing.id}" data-result="wo-white">
-          W.O. ⬜
-        </button>
-        <button class="result-btn btn-wo-black"   data-pairing="${pairing.id}" data-result="wo-black">
-          W.O. ⬛
-        </button>
+        <button class="result-btn btn-white-win"  data-pairing="${pairing.id}" data-result="1-0">1 – 0</button>
+        <button class="result-btn btn-draw"        data-pairing="${pairing.id}" data-result="0.5-0.5">½ – ½</button>
+        <button class="result-btn btn-black-win"  data-pairing="${pairing.id}" data-result="0-1">0 – 1</button>
+        <button class="result-btn btn-wo-white"   data-pairing="${pairing.id}" data-result="wo-white">W.O. ⬜</button>
+        <button class="result-btn btn-wo-black"   data-pairing="${pairing.id}" data-result="wo-black">W.O. ⬛</button>
       </div>
     </div>`;
 }
@@ -324,149 +310,121 @@ function buildDoneCard(pairing, match) {
       </div>
 
       <div class="done-result ${resultClass}">
-        ✓ ${resultLabel}
+        ${resultLabel}
+        ${canRollback ? `<button class="btn-rollback" data-match="${match.id}">↩ Desfazer</button>` : ""}
       </div>
-
-      ${canRollback ? `
-        <button class="btn-rollback" data-match="${match.id}">
-          ↩ Desfazer
-        </button>` : ""}
     </div>`;
 }
 
 /* ══════════════════════════════════════════════
    MODAL DE CONFIRMAÇÃO
    ══════════════════════════════════════════════ */
-let _pendingPairing = null;
-let _pendingResult  = null;
-
 function openModal(pairing, result) {
-  _pendingPairing = pairing;
-  _pendingResult  = result;
+  const modal = document.getElementById("confirm-modal");
+  if (!modal) return;
 
   const white = pairing.pw;
   const black = pairing.pb;
 
-  const labels = {
-    "1-0":      "1 – 0 · Brancas vencem",
-    "0.5-0.5":  "½ – ½ · Empate",
-    "0-1":      "0 – 1 · Negras vencem",
-    "wo-white": "W.O. — Brancas vencem",
-    "wo-black": "W.O. — Negras vencem",
+  document.getElementById("modal-white").textContent = white?.full_name ?? "?";
+  document.getElementById("modal-black").textContent = black?.full_name ?? "?";
+
+  const resultLabels = {
+    "1-0":     "1 – 0 · Brancas vencem",
+    "0-1":     "0 – 1 · Negras vencem",
+    "0.5-0.5": "½ – ½ · Empate",
+    "wo-white":"W.O. — Brancas vencem",
+    "wo-black":"W.O. — Negras vencem",
   };
+  document.getElementById("modal-result").textContent = resultLabels[result] ?? result;
 
-  document.getElementById("modal-title").textContent =
-    `Mesa ${pairing.table_number} · Rodada ${pairing.round_number}`;
-  document.getElementById("modal-matchup").innerHTML =
-    `<strong>${white?.full_name ?? "?"}</strong>
-     <span style="color:var(--text-muted);margin:0 8px;">vs</span>
-     <strong>${black?.full_name ?? "?"}</strong>`;
-  document.getElementById("modal-result-badge").textContent = labels[result] ?? result;
-
-  document.getElementById("result-modal").style.display = "flex";
+  modal.style.display = "flex";
+  modal._pairing = pairing;
+  modal._result  = result;
 }
 
-document.getElementById("modal-cancel").addEventListener("click", () => {
-  document.getElementById("result-modal").style.display = "none";
-  _pendingPairing = null;
-  _pendingResult  = null;
+document.getElementById("modal-cancel")?.addEventListener("click", () => {
+  const modal = document.getElementById("confirm-modal");
+  if (modal) modal.style.display = "none";
 });
 
-document.getElementById("modal-confirm").addEventListener("click", async () => {
-  if (!_pendingPairing || !_pendingResult) return;
+document.getElementById("confirm-modal")?.addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.style.display = "none";
+});
+
+document.getElementById("modal-confirm")?.addEventListener("click", async () => {
+  const modal   = document.getElementById("confirm-modal");
+  if (!modal) return;
+
+  const pairing = modal._pairing;
+  const result  = modal._result;
+
+  const resultMap = {
+    "1-0":     { rw: 1,   rb: 0,   wo: false },
+    "0-1":     { rw: 0,   rb: 1,   wo: false },
+    "0.5-0.5": { rw: 0.5, rb: 0.5, wo: false },
+    "wo-white":{ rw: 1,   rb: 0,   wo: true  },
+    "wo-black":{ rw: 0,   rb: 1,   wo: true  },
+  };
+
+  const { rw, rb, wo } = resultMap[result] ?? { rw: 0.5, rb: 0.5, wo: false };
 
   const btn = document.getElementById("modal-confirm");
   btn.disabled    = true;
   btn.textContent = "Registrando...";
 
-  try {
-    await registerResult(_pendingPairing, _pendingResult);
-    document.getElementById("result-modal").style.display = "none";
-  } catch (err) {
-    alert(err.message || "Erro ao registrar resultado.");
-  } finally {
-    btn.disabled    = false;
-    btn.textContent = "Confirmar";
-    _pendingPairing = null;
-    _pendingResult  = null;
-  }
-});
-
-// Fechar modal clicando fora
-document.getElementById("result-modal").addEventListener("click", (e) => {
-  if (e.target === e.currentTarget) {
-    e.currentTarget.style.display = "none";
-    _pendingPairing = null;
-    _pendingResult  = null;
-  }
-});
-
-/* ══════════════════════════════════════════════
-   REGISTRAR RESULTADO
-   ══════════════════════════════════════════════ */
-async function registerResult(pairing, result) {
-  const white = pairing.pw;
-  const black = pairing.pb;
-
-  let resultWhite, resultBlack, isWalkover = false;
-  switch (result) {
-    case "1-0":      resultWhite = 1;   resultBlack = 0;   break;
-    case "0.5-0.5":  resultWhite = 0.5; resultBlack = 0.5; break;
-    case "0-1":      resultWhite = 0;   resultBlack = 1;   break;
-    case "wo-white": resultWhite = 1;   resultBlack = 0;   isWalkover = true; break;
-    case "wo-black": resultWhite = 0;   resultBlack = 1;   isWalkover = true; break;
-    default: throw new Error("Resultado inválido");
-  }
-
   const { error } = await supabase.rpc("register_match", {
-    p_tournament_id:  currentSession.tournament_id,
-    p_round:          pairing.round_number,
-    p_white:          white.id,
-    p_black:          black.id,
-    p_result_white:   resultWhite,
-    p_result_black:   resultBlack,
-    p_referee_id:     refereeId,
-    p_is_walkover:    isWalkover
+    p_tournament_id: currentSession.tournament_id,
+    p_round:         pairing.round_number,
+    p_white:         pairing.pw.id,
+    p_black:         pairing.pb.id,
+    p_result_white:  rw,
+    p_result_black:  rb,
+    p_referee_id:    refereeId,
+    p_is_walkover:   wo
   });
 
+  btn.disabled    = false;
+  btn.textContent = "Confirmar";
+  modal.style.display = "none";
+
   if (error) {
-    if (error.message.includes("unique_match_per_round")) {
-      throw new Error("Esse confronto já foi registrado nessa rodada.");
-    }
-    throw error;
+    alert(`Erro ao registrar: ${error.message}`);
+    return;
   }
 
-  // Atualizar state e re-renderizar cards
-  await refreshRegisteredMatches(currentSession.tournament_id);
+  // Atualizar estado local e re-renderizar
+  await refreshRegisteredMatches(currentSession.id, currentSession.tournament_id);
   renderCards(currentRound);
   await loadRecentMatches();
-}
+});
 
 /* ══════════════════════════════════════════════
    ROLLBACK
    ══════════════════════════════════════════════ */
 async function doRollback(matchId) {
-  const reason = prompt("Motivo do rollback (opcional):");
-  if (reason === null) return;
+  if (!confirm("Desfazer esta partida? Os ratings serão revertidos.")) return;
+
+  const reason = prompt("Motivo do rollback (opcional):") ?? "";
 
   const { error } = await supabase.rpc("rollback_match", {
     p_match_id:   matchId,
-    p_referee_id: user.id,
-    p_reason:     reason
+    p_referee_id: refereeId,
+    p_reason:     reason || null
   });
 
   if (error) {
-    alert(error.message || "Erro ao realizar rollback.");
+    alert(`Erro ao desfazer: ${error.message}`);
     return;
   }
 
-  await refreshRegisteredMatches(currentSession.tournament_id);
+  await refreshRegisteredMatches(currentSession.id, currentSession.tournament_id);
   renderCards(currentRound);
   await loadRecentMatches();
 }
 
 /* ══════════════════════════════════════════════
-   PARTIDAS RECENTES — mostra 3, expande para ver todas
+   PARTIDAS RECENTES
    ══════════════════════════════════════════════ */
 const MATCHES_PREVIEW = 3;
 
@@ -497,10 +455,10 @@ function buildMatchItem(m) {
   const rw = Number(m.result_white);
   const rb = Number(m.result_black);
   let score, cls;
-  if (m.is_walkover) { score = "W.O."; cls = "score-wo"; }
-  else if (rw === 1) { score = "1 – 0"; cls = "score-white"; }
-  else if (rb === 1) { score = "0 – 1"; cls = "score-black"; }
-  else               { score = "½ – ½"; cls = "score-draw"; }
+  if (m.is_walkover)  { score = "W.O."; cls = "score-wo"; }
+  else if (rw === 1)  { score = "1 – 0"; cls = "score-white"; }
+  else if (rb === 1)  { score = "0 – 1"; cls = "score-black"; }
+  else                { score = "½ – ½"; cls = "score-draw"; }
 
   const rollbackBtn = refereeRole === "admin"
     ? `<button class="btn-undo" data-id="${m.id}">↩</button>`
@@ -523,7 +481,6 @@ function renderMatchList(list, data, expanded) {
 
   list.innerHTML = visible.map(buildMatchItem).join("");
 
-  // Botão expandir/recolher
   if (data.length > MATCHES_PREVIEW) {
     const toggleLi = document.createElement("li");
     toggleLi.className = "match-toggle";
@@ -537,7 +494,6 @@ function renderMatchList(list, data, expanded) {
     });
   }
 
-  // Listeners rollback
   list.querySelectorAll(".btn-undo").forEach(btn => {
     btn.addEventListener("click", async () => {
       await doRollback(btn.dataset.id);
