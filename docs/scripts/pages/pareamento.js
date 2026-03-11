@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           ${sessions.map((s, i) => {
             const tn = s.tournaments?.name || "Torneio";
             return `<button class="round-tab ${i === 0 ? "active" : ""}" data-session-idx="${i}">
-              ${tn} · Torneio ${s.session_number}
+              ${tn} · Dia ${s.session_number}
             </button>`;
           }).join("")}
         </div>`;
