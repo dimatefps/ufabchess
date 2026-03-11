@@ -13,10 +13,10 @@ export async function getPairings(sessionId) {
       round_number,
       table_number,
       player_white:player_white (
-        id, full_name, rating_rapid, games_played_rapid
+        id, full_name, rating_rapid, games_played_rapid, title
       ),
       player_black:player_black (
-        id, full_name, rating_rapid, games_played_rapid
+        id, full_name, rating_rapid, games_played_rapid, title
       )
     `)
     .eq("tournament_session_id", sessionId)

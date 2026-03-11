@@ -38,7 +38,7 @@ export async function getOngoingStandings(tournamentId) {
     .from("tournament_standings")
     .select(`
       points, games_played,
-      players ( id, full_name, rating_rapid, rating_blitz, rating_standard, games_played_rapid ),
+      players ( id, full_name, rating_rapid, rating_blitz, rating_standard, games_played_rapid, title ),
       tournaments ( time_control )
     `)
     .eq("tournament_id", tournamentId)
@@ -69,7 +69,7 @@ export async function getStandingsByTournament(tournamentId) {
     .from("tournament_standings")
     .select(`
       points, games_played, rating_at_end,
-      players ( id, full_name, games_played_rapid )
+      players ( id, full_name, games_played_rapid, title )
     `)
     .eq("tournament_id", tournamentId)
     .order("points", { ascending: false });
@@ -116,7 +116,7 @@ export async function getDiarioStandings(tournamentId) {
     .from("tournament_standings")
     .select(`
       points, games_played,
-      players ( id, full_name, rating_rapid, games_played_rapid ),
+      players ( id, full_name, rating_rapid, games_played_rapid, title ),
       tournaments ( time_control )
     `)
     .eq("tournament_id", tournamentId)

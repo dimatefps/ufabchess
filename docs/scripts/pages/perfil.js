@@ -6,11 +6,12 @@ import { getOpenWeek, getCheckins, doCheckin, cancelCheckin, isPlayerCheckedIn }
 ══════════════════════════════════ */
 
 /* Title badge logic (same as other pages) */
-function getTitleBadge(rating, gamesPlayed) {
-  if (!gamesPlayed || gamesPlayed < 10) return "";
-  if (rating >= 2000) return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
-  if (rating >= 1800) return `<span class="title-badge mf"  title="Mestre Federal">MF</span>`;
-  if (rating >= 1600) return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
+function renderTitleBadge(title) {
+  if (!title) return "";
+  const t = title.toUpperCase();
+  if (t === "GMF") return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
+  if (t === "MF")  return `<span class="title-badge mf" title="Mestre Federal">MF</span>`;
+  if (t === "CMF") return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
   return "";
 }
 
@@ -67,7 +68,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function renderProfile(profile, week, checkins, isCheckedIn) {
   const initials = profile.full_name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
-  const badge = getTitleBadge(profile.rating_rapid, profile.games_played_rapid);
+  const badge   = renderTitleBadge(p.title);
 
   const weekHtml = week ? renderCheckinSection(week, checkins, isCheckedIn) : `
     <div class="checkin-card">

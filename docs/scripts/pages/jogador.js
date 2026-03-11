@@ -5,11 +5,12 @@ import { supabase } from "../services/supabase.js";
    Três abas: Progresso · Quadrimestral · Abertos
    ══════════════════════════════════════════════ */
 
-function getTitleBadge(rating, gamesPlayed) {
-  if (!gamesPlayed || gamesPlayed < 10) return "";
-  if (rating >= 2000) return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
-  if (rating >= 1800) return `<span class="title-badge mf"  title="Mestre Federal">MF</span>`;
-  if (rating >= 1600) return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
+function renderTitleBadge(title) {
+  if (!title) return "";
+  const t = title.toUpperCase();
+  if (t === "GMF") return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
+  if (t === "MF")  return `<span class="title-badge mf" title="Mestre Federal">MF</span>`;
+  if (t === "CMF") return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
   return "";
 }
 
@@ -126,7 +127,7 @@ document.addEventListener("DOMContentLoaded", async () => {
    ══════════════════════════════════ */
 function renderSkeleton(player, rank, total) {
   const initials = player.full_name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
-  const badge    = getTitleBadge(player.rating_rapid, player.games_played_rapid);
+  const badge    = renderTitleBadge(player.title);
 
   return `
     <div class="player-header">
