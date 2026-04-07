@@ -195,7 +195,8 @@ function showRegisterForm(user) {
 async function renderProfileView(player, user) {
   const grid     = document.getElementById("profile-grid");
   const initials = player.full_name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
-  const b = renderTitleBadge(c.players?.title);
+   // O ERRO ESTAVA AQUI: Use 'player.title' em vez de 'c'
+  const badge    = renderTitleBadge(player.title);
 
   const { count: totalPlayers } = await supabase.from("players").select("id", { count: "exact", head: true });
   const { count: playersAbove } = await supabase.from("players").select("id", { count: "exact", head: true }).gt("rating_rapid", player.rating_rapid ?? 0);
