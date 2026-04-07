@@ -320,40 +320,47 @@ function buildDoneCard(pairing, match) {
    MODAL DE CONFIRMAÇÃO
    ══════════════════════════════════════════════ */
 function openModal(pairing, result) {
-  const modal = document.getElementById("confirm-modal");
+  // Alterado de "confirm-modal" para "result-modal"
+  const modal = document.getElementById("result-modal");
   if (!modal) return;
 
   const white = pairing.pw;
   const black = pairing.pb;
 
-  document.getElementById("modal-white").textContent = white?.full_name ?? "?";
-  document.getElementById("modal-black").textContent = black?.full_name ?? "?";
+  // Alterado para injetar o texto no "modal-matchup"
+  document.getElementById("modal-matchup").textContent = 
+    `${white?.full_name ?? "?"} vs ${black?.full_name ?? "?"}`;
 
   const resultLabels = {
-    "1-0":     "1 – 0 · Brancas vencem",
-    "0-1":     "0 – 1 · Negras vencem",
-    "0.5-0.5": "½ – ½ · Empate",
-    "wo-white":"W.O. — Brancas vencem",
-    "wo-black":"W.O. — Negras vencem",
+    "1-0":      "1 – 0 · Brancas vencem",
+    "0-1":      "0 – 1 · Negras vencem",
+    "0.5-0.5":  "½ – ½ · Empate",
+    "wo-white": "W.O. — Brancas vencem",
+    "wo-black": "W.O. — Negras vencem",
   };
-  document.getElementById("modal-result").textContent = resultLabels[result] ?? result;
+  
+  // Alterado de "modal-result" para "modal-result-badge"
+  document.getElementById("modal-result-badge").textContent = resultLabels[result] ?? result;
 
   modal.style.display = "flex";
   modal._pairing = pairing;
   modal._result  = result;
 }
 
+// Alterado para "modal-cancel"
 document.getElementById("modal-cancel")?.addEventListener("click", () => {
-  const modal = document.getElementById("confirm-modal");
+  const modal = document.getElementById("result-modal");
   if (modal) modal.style.display = "none";
 });
 
-document.getElementById("confirm-modal")?.addEventListener("click", (e) => {
+// Alterado para fechar ao clicar fora (no "result-modal")
+document.getElementById("result-modal")?.addEventListener("click", (e) => {
   if (e.target === e.currentTarget) e.currentTarget.style.display = "none";
 });
 
+// Listener do botão confirmar (ID modal-confirm está correto no HTML)
 document.getElementById("modal-confirm")?.addEventListener("click", async () => {
-  const modal   = document.getElementById("confirm-modal");
+  const modal = document.getElementById("result-modal");
   if (!modal) return;
 
   const pairing = modal._pairing;
