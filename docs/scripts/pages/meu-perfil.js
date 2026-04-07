@@ -190,7 +190,6 @@ function showRegisterForm(user) {
 async function renderProfileView(player, user) {
   const grid     = document.getElementById("profile-grid");
   const initials = player.full_name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
-  
   // O ERRO ESTAVA AQUI: Use 'player.title' em vez de 'c'
   const badge    = renderTitleBadge(player.title);
 
@@ -1000,7 +999,6 @@ async function buildSessionCard(session, player) {
 
   const listHtml = checkinList.length
     ? checkinList.map((c, i) => {
-        // 2. MUDAMOS A CHAMADA DA BADGE AQUI
         const b = renderTitleBadge(c.players?.title);
         return `<div class="checkin-player" style="animation-delay:${i * 40}ms">
           <span class="cp-pos">${i + 1}</span>

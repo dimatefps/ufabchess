@@ -117,6 +117,7 @@ export async function getDiarioStandings(tournamentId) {
     .select(`
       points, games_played,
       players ( id, full_name, rating_rapid, games_played_rapid, title ),
+      players ( id, full_name, rating_rapid, games_played_rapida, title ),
       tournaments ( time_control )
     `)
     .eq("tournament_id", tournamentId)

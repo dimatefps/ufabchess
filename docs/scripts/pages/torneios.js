@@ -326,7 +326,7 @@ function buildRow(s, index, type) {
     rating = s.rating_at_end;
   }
 
-  const badge     = renderTitleBadge(s.players?.title);
+   const badge     = renderTitleBadge(s.players?.title);
   const rankClass = index === 0 ? "rank-1" : index === 1 ? "rank-2" : index === 2 ? "rank-3" : "";
 
   return `

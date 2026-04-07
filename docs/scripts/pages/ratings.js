@@ -44,7 +44,7 @@ function renderRatingsTable(players) {
   const rankClass = (i) => i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "";
 
   const rows = players.map((p, i) => {
-    const badge   = renderTitleBadge(p.title);
+    const badge   = renderTitleBadge(p.title)
     const rankCls = rankClass(i);
 
     /* ── Nome clicável → perfil público ── */

@@ -7,7 +7,7 @@ export async function getCurrentRatings() {
       id,
       full_name,
       rating_rapid,
-      games_played_rapid,
+      games_played_rapid, 
       title
     `)
     .order("rating_rapid", { ascending: false });
