@@ -10,6 +10,7 @@ export async function getCurrentRatings() {
       games_played_rapid, 
       title
     `)
+    .eq('is_test', false) // ← Adicionado: Filtra para mostrar apenas quem não é de teste
     .order("rating_rapid", { ascending: false });
 
   if (error) throw error;
