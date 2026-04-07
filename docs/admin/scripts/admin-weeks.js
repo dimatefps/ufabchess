@@ -249,39 +249,13 @@ async function loadSessions() {
     });
   });
 
-  /* Bind: Encerrar — chama create_pending_reports_for_session
-     que: (1) muda status → finished
-          (2) cria match_reports pending para partidas sem resultado */
+  /* Bind: Encerrar */
   sessionsList.querySelectorAll(".btn-encerrar").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const label = btn.dataset.label;
-      if (!confirm(`Encerrar "${label}"?\n\nIsso irá:\n• Fechar o check-in\n• Liberar registro de resultados para os jogadores\n\nEsta ação não pode ser desfeita.`)) return;
-
-      btn.disabled    = true;
-      btn.textContent = "Encerrando...";
-
-      const { data, error } = await supabase.rpc("create_pending_reports_for_session", {
-        p_session_id: btn.dataset.sessionId
-      });
-
-      if (error || data?.success === false) {
-        btn.disabled    = false;
-        btn.textContent = "✕ Encerrar";
-        alert(data?.error || error?.message || "Erro ao encerrar sessão.");
-        return;
-      }
-
-      const criadas = data.created ?? 0;
-      if (criadas > 0) {
-        alert(`✅ Torneio encerrado!\n${criadas} partida${criadas > 1 ? "s" : ""} aguardando resultado dos jogadores.`);
-      } else {
-        alert("✅ Torneio encerrado!");
-      }
-
+      if (!confirm(`Encerrar "${btn.dataset.label}"?\nEsta ação não pode ser desfeita.`)) return;
+      const { error } = await supabase.from("tournament_sessions").update({ status: "finished" }).eq("id", btn.dataset.sessionId);
+      if (error) { alert(error.message || "Erro ao encerrar."); return; }
       await loadSessions();
-
-      // Recarregar disputas se o painel estiver na página
-      if (typeof loadDisputes === "function") loadDisputes();
     });
   });
 }
@@ -317,11 +291,6 @@ async function generateRoundDiario(sessionId, roundNumber, btn) {
   if (byeId) lines.push(`⚠️ BYE: um jogador ficou sem par`);
 
   alert(`✅ Rodada ${roundNumber} / ${total} gerada!\n${players} jogadores · ${pairings.length} mesas\n\n${lines.join("\n")}`);
-  // Após o alert de sucesso da rodada:
-  await supabase.rpc("create_pending_reports_for_round", {
-  p_session_id: sessionId,
-  p_round:      roundNumber
-  });
 
   // Email com round_number → filtra só esta rodada
   btn.textContent = "📧 Enviando emails...";
@@ -359,7 +328,7 @@ async function generatePairingQuadrimestral(sessionId, label, btn) {
   try {
     const { data: authData } = await supabase.auth.getSession();
     const { data: emailData, error: emailError } = await supabase.functions.invoke("notify-pairings", {
-      body:    { tournament_session_id: sessionId },
+      body:    { tournament_session_id: sessionId }, // sem round_number → todas as rodadas
       headers: { Authorization: `Bearer ${authData?.session?.access_token}` }
     });
 
