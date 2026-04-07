@@ -5,11 +5,12 @@ import { getCurrentRatings } from "../services/ratings.service.js";
    Requisito: mínimo 10 partidas jogadas
    CMF ≥ 1600 | MF ≥ 1800 | GMF ≥ 2000
    ══════════════════════════════════════ */
-function getTitleBadge(rating, gamesPlayed) {
-  if (!gamesPlayed || gamesPlayed < 10) return "";
-  if (rating >= 2000) return `<span class="title-badge gmf" title="Grande Mestre Federal — ${rating} pts">GMF</span>`;
-  if (rating >= 1800) return `<span class="title-badge mf"  title="Mestre Federal — ${rating} pts">MF</span>`;
-  if (rating >= 1600) return `<span class="title-badge cmf" title="Candidato a Mestre Federal — ${rating} pts">CMF</span>`;
+function renderTitleBadge(title) {
+  if (!title) return "";
+  const t = title.toUpperCase();
+  if (t === "GMF") return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
+  if (t === "MF")  return `<span class="title-badge mf" title="Mestre Federal">MF</span>`;
+  if (t === "CMF") return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
   return "";
 }
 
@@ -43,7 +44,7 @@ function renderRatingsTable(players) {
   const rankClass = (i) => i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : "";
 
   const rows = players.map((p, i) => {
-    const badge   = getTitleBadge(p.rating_rapid, p.games_played_rapid);
+    const badge   = renderTitleBadge(p.title)
     const rankCls = rankClass(i);
 
     /* ── Nome clicável → perfil público ── */

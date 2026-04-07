@@ -11,11 +11,12 @@ const RATING_BY_LEVEL = {
   avancado:      1800
 };
 
-function getTitleBadge(rating, gamesPlayed) {
-  if (!gamesPlayed || gamesPlayed < 10) return "";
-  if (rating >= 2000) return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
-  if (rating >= 1800) return `<span class="title-badge mf"  title="Mestre Federal">MF</span>`;
-  if (rating >= 1600) return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
+function renderTitleBadge(title) {
+  if (!title) return "";
+  const t = title.toUpperCase();
+  if (t === "GMF") return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
+  if (t === "MF")  return `<span class="title-badge mf" title="Mestre Federal">MF</span>`;
+  if (t === "CMF") return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
   return "";
 }
 
@@ -164,7 +165,7 @@ async function checkPlayerProfile(user) {
 
 function renderLinkPrompt(player) {
   const el    = document.getElementById("link-player-info");
-  const badge = getTitleBadge(player.rating_rapid, player.games_played_rapid);
+  const badge = renderTitleBadge(player.title);
   el.innerHTML = `
     <div><span class="link-player-name">${badge} ${player.full_name}</span></div>
     <div>
@@ -194,7 +195,7 @@ function showRegisterForm(user) {
 async function renderProfileView(player, user) {
   const grid     = document.getElementById("profile-grid");
   const initials = player.full_name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
-  const badge    = getTitleBadge(player.rating_rapid, player.games_played_rapid);
+  const b = renderTitleBadge(c.players?.title);
 
   const { count: totalPlayers } = await supabase.from("players").select("id", { count: "exact", head: true });
   const { count: playersAbove } = await supabase.from("players").select("id", { count: "exact", head: true }).gt("rating_rapid", player.rating_rapid ?? 0);
@@ -420,7 +421,7 @@ async function buildTorneiosPanel(panelId, player) {
 async function buildSessionCard(session, player) {
   const { data: checkins } = await supabase
     .from("tournament_checkins")
-    .select(`id, player_id, checked_in_at, players ( full_name, rating_rapid, games_played_rapid )`)
+    .select(`id, player_id, checked_in_at, players ( full_name, rating_rapid, games_played_rapid, title )`)
     .eq("tournament_session_id", session.id)
     .order("checked_in_at", { ascending: true });
 
@@ -475,7 +476,7 @@ async function buildSessionCard(session, player) {
 
   const listHtml = checkinList.length
     ? checkinList.map((c, i) => {
-        const b = getTitleBadge(c.players?.rating_rapid, c.players?.games_played_rapid);
+        const b = renderTitleBadge(c.players?.title);
         return `<div class="checkin-player" style="animation-delay:${i * 40}ms">
           <span class="cp-pos">${i + 1}</span>
           <span class="cp-name">${b}${c.players?.full_name || "?"}</span>

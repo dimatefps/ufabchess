@@ -34,7 +34,7 @@ export async function getCheckins(sessionId) {
     .from("tournament_checkins")
     .select(`
       id, player_id, checked_in_at,
-      players ( full_name, rating_rapid, games_played_rapid )
+      players ( full_name, rating_rapid, games_played_rapid, title )
     `)
     .eq("tournament_session_id", sessionId)
     .order("checked_in_at", { ascending: true });

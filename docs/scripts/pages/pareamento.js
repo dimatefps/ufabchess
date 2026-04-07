@@ -7,11 +7,12 @@ import { supabase } from "../services/supabase.js";
    PAREAMENTO PAGE — múltiplas sessões
 ══════════════════════════════════ */
 
-function getTitleBadge(rating, gamesPlayed) {
-  if (!gamesPlayed || gamesPlayed < 10) return "";
-  if (rating >= 2000) return `<span class="title-badge gmf" title="GMF">GMF</span>`;
-  if (rating >= 1800) return `<span class="title-badge mf"  title="MF">MF</span>`;
-  if (rating >= 1600) return `<span class="title-badge cmf" title="CMF">CMF</span>`;
+function renderTitleBadge(title) {
+  if (!title) return "";
+  const t = title.toUpperCase();
+  if (t === "GMF") return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
+  if (t === "MF")  return `<span class="title-badge mf" title="Mestre Federal">MF</span>`;
+  if (t === "CMF") return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
   return "";
 }
 
@@ -159,8 +160,8 @@ function renderRound(container, pairs, roundNumber) {
 
     const isWhiteMe  = white?.id === currentPlayerId;
     const isBlackMe  = black?.id === currentPlayerId;
-    const whiteBadge = getTitleBadge(white?.rating_rapid, white?.games_played_rapid);
-    const blackBadge = getTitleBadge(black?.rating_rapid, black?.games_played_rapid);
+    const whiteBadge = renderTitleBadge(white?.title);
+    const blackBadge = renderTitleBadge(black?.title);
 
     return `
       <div class="pairing-card" style="animation-delay:${i * 50}ms">

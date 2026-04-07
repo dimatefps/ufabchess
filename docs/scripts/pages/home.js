@@ -5,11 +5,12 @@ import { getTop6Players } from "../services/top6.service.js";
    Requisito: mínimo 10 partidas jogadas
    CMF ≥ 1600 | MF ≥ 1800 | GMF ≥ 2000
    ══════════════════════════════════════ */
-function getTitleBadge(rating, gamesPlayed) {
-  if (!gamesPlayed || gamesPlayed < 10) return "";
-  if (rating >= 2000) return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
-  if (rating >= 1800) return `<span class="title-badge mf"  title="Mestre Federal">MF</span>`;
-  if (rating >= 1600) return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
+function renderTitleBadge(title) {
+  if (!title) return "";
+  const t = title.toUpperCase();
+  if (t === "GMF") return `<span class="title-badge gmf" title="Grande Mestre Federal">GMF</span>`;
+  if (t === "MF")  return `<span class="title-badge mf" title="Mestre Federal">MF</span>`;
+  if (t === "CMF") return `<span class="title-badge cmf" title="Candidato a Mestre Federal">CMF</span>`;
   return "";
 }
 
@@ -32,7 +33,7 @@ function renderTop6(players) {
   }
 
   const items = players.map((p, index) => {
-    const badge = getTitleBadge(p.rating_rapid, p.games_played_rapid);
+    const badge = renderTitleBadge(p.title);
     return `
       <li style="animation-delay:${index * 60}ms">
         <span class="player-position">${index + 1}</span>
