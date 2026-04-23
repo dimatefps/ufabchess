@@ -381,15 +381,16 @@ document.getElementById("modal-confirm")?.addEventListener("click", async () => 
   btn.textContent = "Registrando...";
 
   const { error } = await supabase.rpc("register_match", {
-    p_tournament_id: currentSession.tournament_id,
-    p_round:         pairing.round_number,
-    p_white:         pairing.pw.id,
-    p_black:         pairing.pb.id,
-    p_result_white:  rw,
-    p_result_black:  rb,
-    p_referee_id:    refereeId,
-    p_is_walkover:   wo
-  });
+  p_tournament_id: currentSession.tournament_id,
+  p_session_id:    currentSession.id, // ← Adicionar esta linha
+  p_round:         pairing.round_number,
+  p_white:         pairing.pw.id,
+  p_black:         pairing.pb.id,
+  p_result_white:  rw,
+  p_result_black:  rb,
+  p_referee_id:    refereeId,
+  p_is_walkover:   wo
+});
 
   btn.disabled    = false;
   btn.textContent = "Confirmar";
