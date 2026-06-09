@@ -86,7 +86,7 @@ async function loadSession(session, tabsContainer, content) {
     weekInfoEl.innerHTML = `
       <div class="card" style="padding:16px 20px;">
         <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);">
-          Torneio ${session.session_number}
+          Dia ${session.session_number}
         </span>
         <h3 style="font-size:1rem;margin-top:4px;">${tournamentName}${edition}</h3>
         <p style="font-size:.84rem;color:var(--text-secondary);margin-top:2px;">📅 ${dateStr} às ${session.match_time?.slice(0, 5) || "18:15"}</p>
