@@ -148,15 +148,12 @@ async function refreshRegisteredMatches(sessionId, tournamentId) {
   const { data, error } = await supabase
     .from("matches")
     .select(`id, round_number, result_white, result_black, is_walkover, player_white, player_black`)
-    .eq("tournament_id", sessionId);
+    .eq("tournament_id", tournamentId); // 👈 O ERRO ESTÁ AQUI!
 
   registeredMatches = {};
   (data ?? []).forEach(m => {
     const key = `${m.round_number}__${m.player_white}__${m.player_black}`;
-    // Só inclui se o pairing pertence à sessão atual
-    if (sessionKeys.has(key)) {
-      registeredMatches[key] = m;
-    }
+    registeredMatches[key] = m;
   });
 }
 
