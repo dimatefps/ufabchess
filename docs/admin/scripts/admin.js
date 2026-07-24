@@ -148,7 +148,7 @@ async function refreshRegisteredMatches(sessionId, tournamentId) {
   const { data, error } = await supabase
     .from("matches")
     .select(`id, round_number, result_white, result_black, is_walkover, player_white, player_black`)
-    .eq("tournament_id", tournamentId);
+    .eq("tournament_id", sessionId);
 
   registeredMatches = {};
   (data ?? []).forEach(m => {
