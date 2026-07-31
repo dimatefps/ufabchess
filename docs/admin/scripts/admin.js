@@ -134,29 +134,24 @@ async function onSessionChange(session) {
    resultados de sessões anteriores do mesmo torneio
    ══════════════════════════════════════════════ */
 async function refreshRegisteredMatches(sessionId, tournamentId) {
-  // Busca pairings desta sessão específica para saber quais chaves são válidas
-  const { data: sessionPairings } = await supabase
-    .from("pairings")
-    .select("player_white, player_black, round_number")
-    .eq("tournament_session_id", sessionId);
-
-  const sessionKeys = new Set(
-    (sessionPairings ?? []).map(p => `${p.round_number}__${p.player_white}__${p.player_black}`)
-  );
-
-  // Busca matches do torneio
+  // Busca matches APENAS da sessão ativa de hoje
   const { data, error } = await supabase
     .from("matches")
     .select(`id, round_number, result_white, result_black, is_walkover, player_white, player_black`)
-    .eq("tournament_id", tournamentId); // 👈 O ERRO ESTÁ AQUI!
+    .eq("session_id", sessionId); // ✅ Filtrando corretamente por sessão!
 
   registeredMatches = {};
+  
+  if (error) {
+    console.error("Erro ao buscar partidas registradas:", error);
+    return;
+  }
+
   (data ?? []).forEach(m => {
     const key = `${m.round_number}__${m.player_white}__${m.player_black}`;
     registeredMatches[key] = m;
   });
 }
-
 /* ══════════════════════════════════════════════
    TABS DE RODADA
    ══════════════════════════════════════════════ */
